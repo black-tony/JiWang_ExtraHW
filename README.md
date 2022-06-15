@@ -1,6 +1,10 @@
 # ExtraHW
  JiWang ExtraHW
 
+
+#### TODO_服务端
+1. 将ssl的证书文件整合到本目录下
+
 # 部署方式
 如果没有`python`和`pip`命令, 可以试一试有没有`python3`, `pip3`
 ```shell
@@ -29,4 +33,5 @@ ssl生成的两个文件位置和文件名需要固定~~(因为路径写死了)~~, 否则需要在init.py文件
 上面一行在显示的时候会将value的 `{{user_id}}`替换为python传入的`user_id`变量的值, 可以是空, 具体样式为
 
 ![这样](./photo_readme/render.png)
+
 
