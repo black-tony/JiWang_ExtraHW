@@ -2,7 +2,7 @@
 import configparser
 from configparser import ConfigParser
 from click import getchar
-DEFAULT_DIR = "/home/webrtc_video"
+DEFAULT_DIR = "/home/webrtc/video"
 DEFAULT_FRAME_WIDTH = 1920
 DEFAULT_FRAME_HEIGHT = 1080
 DEFAULT_FRAME_RATE = 15

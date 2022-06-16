@@ -1,11 +1,61 @@
 # ExtraHW
  JiWang ExtraHW
 
-
+----------------
 #### TODO_服务端
 1. 将ssl的证书文件整合到本目录下
+-----------------------
+## ~~使用数据库的方法~~ 使含有数据库的server端正常运行的方法
+
+先安装mariadb
+
+- 数据库的用户要求是`root`(后期可能会改)
+- 数据库的密码要求是`A6080o--a__TtVFR`
+
+mariadb初始化: 执行`python ./initdatabase.py`即可
+
+`initdatabase.py` 默认使用`./user.sql`, 如果要另外指定sql文件需要使用命令行参数
 
 
+`python initdatabase.py <文件名>`
+
+
+运行init.py的时候如果遇到如下错误
+```
+ModuleNotFoundError: No module named 'MySQLdb' flask
+```
+需要执行如下指令
+```shell
+pip install mysqlclient
+```
+
+-----------------------
+## 使用配置文件的方法
+默认配置文件为`./webrtc-Tony.conf`, 直接执行`python init.py`的话就会使用这个配置文件
+
+如果想要使用其他的配置文件, 可以使用命令行参数
+
+`python init.py <文件名>`
+
+配置文件中现在支持的内容有, 配置文件中不出现的内容使用默认值, 默认值及配置文件示例如下
+```properties
+[root_dir]
+dir = /home/webrtc/video # 录像保存位置, 暂时还用不到
+
+[frame]
+width=1920
+    high =    1080 # 高度
+
+rate = 15 ;每秒帧率
+
+[断联时间]
+disconnect=15 #断联15s后提示
+
+[ssl]
+crt = /etc/pki/tls/certs/cert.crt # crt文件的位置
+key = /etc/pki/tls/private/cert.key # key文件的位置
+```
+-----------------------
 
 # 客户端与服务端通信方法:
 使用socketIO
@@ -55,6 +105,7 @@ pip install Flask
 pip install configparser
 pip install Flask-SocketIO
 pip install Flask-SQLAlchemy
+pip install mysqlclient # 运行init.py的时候如果提示没有MySQLdb, 需要运行这个
 pip install pyOpenSSL
 python init.py 
 ```
