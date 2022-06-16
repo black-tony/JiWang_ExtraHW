@@ -9,11 +9,11 @@ app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = "r`9[M-AtuO"
 if len(sys.argv) > 1:
     read_from_config_file(sys.argv[1])
-else :
+else:
     read_from_config_file("./webrtc-Tony.conf")
 ssl_certificate = config_info['ssl']['crt']
 ssl_certificate_key = config_info['ssl']['key']
-
+# print(ssl_certificate, ssl_certificate_key)
 DEBUG = 1
 
 

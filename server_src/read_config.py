@@ -33,15 +33,15 @@ def read_from_config_file(filename, encoding='GB18030'):
     buf = buf.replace("\n", "\n\n")
     
     __config.read_string(buf)
-    print(__config.sections())
+    # print(__config.sections())
     # getchar()
-    print(__config.options('frame'))
+    # print(__config.options('frame'))
     config_info['root_dir'] = __config.get(section='root_dir', option='dir', fallback=DEFAULT_DIR)
     config_info['frame']['width'] = __config.getint(section='frame', option='width', fallback=DEFAULT_FRAME_WIDTH)
     config_info['frame']['height'] = __config.getint(section='frame', option='high', fallback=DEFAULT_FRAME_HEIGHT)
     config_info['frame']['rate'] = __config.getint(section='frame', option='rate', fallback=DEFAULT_FRAME_RATE)
     config_info['disconnect'] = __config.getint(section='¶ÏÁªÊ±¼ä', option='disconnect', fallback=DEFAULT_DISCONNECT)
-    config_info['ssl']['crt'] = __config.get(section='ssl', option='crt_dir', fallback=DEFAULT_SSL_CRT)
+    config_info['ssl']['crt'] = __config.get(section='ssl', option='crt', fallback=DEFAULT_SSL_CRT)
     config_info['ssl']['key'] = __config.get(section='ssl', option='key', fallback=DEFAULT_SSL_KEY)
     
     
