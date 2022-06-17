@@ -45,6 +45,7 @@ let sharestream
 let isconnectcreator
 // Connection between the local device and the remote peer.
 var rtcpeerconnection = {}
+var videocontainers = {}
 let roomid
 let clientid
 let lastconnect
@@ -92,6 +93,8 @@ socket.on('webrtc_offer', async (event) => {
         rtcpeerconnection[peerid] = new RTCPeerConnection(iceservers)
         //老师不需要录屏
         //对面发来track的时候可以call下一个
+        videocontainers[peerid] = await createNewContainer(peerid)
+
         rtcpeerconnection[peerid].ontrack = function(event){
             event.peerid = peerid
             setRemoteStream(event)
@@ -216,14 +219,32 @@ function leaveVideoConference(event) {
 
 
 function removeRemoteStream(event) {
-    var d = document.getElementById(event['From']+':'+event['To']) || document.getElementById(event['To']+':'+event['From'])
+    var d1 = document.getElementById(event['From']+':'+event['To'] + "_1") || document.getElementById(event['To']+':'+event['From'] + "_1")
+    var d2 = document.getElementById(event['From']+':'+event['To'] + "_2") || document.getElementById(event['To']+':'+event['From'] + "_2")
+    // try
+    // {
+    //     d1.remove()
+    // }
+    // catch(error)
+    // {
+    //     console.log(d1)
+    // }
+    // try
+    // {
+    //     d2.remove()
+    // }
+    // catch(error)
+    // {
+    //     console.log(d2)
+    // }
+    var d3 = document.getElementById(event['From']+':'+event['To']) || document.getElementById(event['To']+':'+event['From'])
     try
     {
-        d.remove()
+        d3.remove()
     }
     catch(error)
     {
-        console.log(d)
+        console.log(d3)
     }
     if(rtcpeerconnection[event['From']+':'+event['To']])
     {
@@ -242,6 +263,7 @@ function removeRemoteStream(event) {
             
         }
     }
+    
 }
 
 // 2
@@ -270,22 +292,49 @@ async function createAnswer(peerid) {
     })
 }
 
+async function createNewContainer(peerid){
+    let firststream = document.getElementById(peerid)
+    if( firststream != null)
+    {
+        console.error("this session id is already used!")
+        return
+    }
+    var div = document.createElement("div");
+    // div.setAttribute("class", "video-position");
+    div.setAttribute("id", peerid);
+    div.setAttribute("autoplay", "autoplay");
+    div.setAttribute("playsInline", "playsInline");
+    remotevideocomponent.insertBefore(div, null);
+    var desc = document.createTextNode(peerid)
+    div.insertBefore(desc, null)
+    var br = document.createElement("br")
+    div.insertBefore(br, null)
 
+    // videocontainers[peerid] = div
+    return div
+}
 
 // set remote stream 
 function setRemoteStream(event) {
+    if(event.track.kind == 'audio')
+        return
+    
     console.log("set remote stream event!!")
-    if(document.getElementById(event.peerid) != null)
+    let firststream = document.getElementById(event.peerid)
+    let secondstream = document.getElementById(event.peerid + "2")
+    if( firststream != null && secondstream != null)
     {
-        document.getElementById(event.peerid).remove();
+        console.error("a third line!")
+        return
     }
     var div = document.createElement("video");
     div.setAttribute("class", "remote-video");
-    div.setAttribute("id", event.peerid);
+    div.setAttribute("id", event.peerid + (firststream == null ? "_1" : "_2"));
     div.setAttribute("autoplay", "autoplay");
     div.setAttribute("playsInline", "playsInline");
     div.srcObject = event.streams[0]
-    remotevideocomponent.insertBefore(div, localvideocomponent.nextSibling);
+    console.log(event.track)//TODO
+    videocontainers[event.peerid].insertBefore(div, null);
     remotestream = event.stream
 }
 

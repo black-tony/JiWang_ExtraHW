@@ -4,6 +4,7 @@ const roominput = document.getElementById('room-input')
 const connectbtn = document.getElementById('connect-button')
 const disconnectbtn = document.getElementById('disconnect-button')
 const sharescreen = document.getElementById('share-screen')
+const localscreencomponent = document.getElementById('local-screen')
 const hidelocalbox = document.getElementById('hide-localbox')
 const videochatcontainer = document.getElementById('video-chat-container')
 const localvideocomponent = document.getElementById('local-video')
@@ -28,7 +29,9 @@ const iceservers = {
 
 // initial recoder global variable
 var chunks = [];
+var chunks2 = [];
 var mediarecorder
+var mediarecorder2
 // record audio or video
 var blob
 // control webcam and audio
@@ -49,6 +52,7 @@ var rtcpeerconnection = {}
 let roomid
 let clientid
 let lastconnect
+let teacher_sid
 
 // -------------------------set element event binding-------------------------------
 
@@ -64,9 +68,9 @@ connectbtn.addEventListener('click', async () => {
             sampleRate: 44100
         },
         video: {
-            width: { max: 1280 },
-            height: { max: 720 },
-            frameRate: {max: 30}
+            width: { max: 1920 },
+            height: { max: 1080 },
+            frameRate: {max: 15}
         }
     }
     joinRoom('1');
@@ -152,6 +156,7 @@ socket.on('start_call', async (event) => {
     if (isconnectcreator) 
     {
         var peerid = event.From +':'+ event.To
+
         rtcpeerconnection[peerid] = new RTCPeerConnection(iceservers)
 
         addLocalTracks(peerid)
@@ -211,6 +216,7 @@ socket.on('transfer_complete', async () => {
     mode = 0
     roomid,clientid,recoder,mediarecorder = undefined,undefined,undefined,undefined
     chunks = [];
+    chunks2 = [];
     alert('transfer record complete!');
 })
 
@@ -243,50 +249,94 @@ function leaveRoom(room,client){
 function startRecord(room){
     // recoder stream
     mediarecorder = new MediaRecorder(localstream)
+    mediarecorder2 = new MediaRecorder(sharestream)
     // set stream mode (video or audio) 
-    if(mode === 1){
-        mediarecorder.mimeType = 'audio/webm; codecs=opus';
-        console.log("recorder started");
-
-    }else if(mode === 2 || mode === 3){
+    if(mode == 3)
+    {
         mediarecorder.mimeType = 'video/webm; codecs=h264';
+        mediarecorder2.mimeType = 'video/webm; codecs=h264';
         // mediarecorder.audioChannels = 2;
         console.log("recorder started");
-    }else{
+    }
+    else
+    {
         console.log('can\'t recorde, plz check your mode')
     }
     socket.emit('record_time',{roomid:room,clientid:clientid,mode:'start'})
-    // set 10 sec trigger dataavailable and cut blob
-    mediarecorder.start(10000);
+
+    //µ¥Î»ÊÇms
+    mediarecorder.start(3 * 1000);
     // event function
     mediarecorder.ondataavailable = function(e) {
         chunks.push(e.data);
         socket.emit('upload_blob',{data:chunks.shift(),roomid:room,clientid:clientid,mode:1});
         console.log('upload record !!');
     }
+
+    mediarecorder2.start(3 * 1000);
+    // event function
+    mediarecorder2.ondataavailable = function(e) {
+        chunks2.push(e.data);
+        socket.emit('upload_blob',{data:chunks2.shift(),roomid:room,clientid:clientid,mode:1 + 2});
+        console.log('upload record_screen !!');
+    }
 }
 
 
 // this function to stop record
-function stopRecord(room){
-  if(mediarecorder != undefined){
-    mediarecorder.stop()
-    socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop'})
-    console.log("recorder stopped");
-    var atlast = chunks.length
-    console.log("there are",atlast,"data need upload")
-    if(atlast != 0){
-      for (let i = 0; i < atlast; i++) {
-        if(i == atlast-1){
-          socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:0})
-        }else{
-          socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:1})
+async function stopRecord(room)
+{
+    if(mediarecorder != undefined)
+    {
+        mediarecorder.stop()
+        await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop'})
+        console.log("recorder stopped");
+        var atlast = chunks.length
+        console.log("there are",atlast,"data need upload")
+        if(atlast != 0)
+        {
+            for (let i = 0; i < atlast; i++) {
+                if(i == atlast-1)
+                {
+                    await socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:0})
+                }
+                else
+                {
+                    await socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:1})
+                }
+            }
         }
-      }
-    }else{
-      socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0})
+        else
+        {
+            await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0})
+        }
     }
-  }
+    if(mediarecorder2 != undefined)
+    {
+        mediarecorder2.stop()
+        await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop'})
+        console.log("recorder stopped");
+        var atlast = chunks2.length
+        console.log("there are",atlast,"data need upload")
+        if(atlast != 0)
+        {
+            for (let i = 0; i < atlast; i++) {
+                if(i == atlast-1)
+                {
+                    await socket.emit('upload_blob',{data:chunks2[i],roomid:room,clientid:clientid,mode:0 + 2})
+                }
+                else
+                {
+                    await socket.emit('upload_blob',{data:chunks2[i],roomid:room,clientid:clientid,mode:1 + 2})
+                }
+            }
+        }
+        else
+        {
+            await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0 + 2})
+        }
+    }
+    return true
 }
 
 
@@ -300,11 +350,14 @@ async function startShareScreen(mediaconstraints){
     {
         sharestream = await navigator.mediaDevices.getDisplayMedia(displayconstraints)
         localvideocomponent.srcObject = sharestream
+
+        //HERE
         // senders.find(sender => sender.track.kind === 'video').replaceTrack(sharestream.getTracks()[0])
         for(i=0;i<senders.length;i++)
         {
             if(senders[i].track.kind === 'video')
             {
+                // console.log(sharestream.getTracks()[0])
                 senders[i].replaceTrack(sharestream.getTracks()[0]);
             }
         }
@@ -381,6 +434,7 @@ function leaveVideoConference(event) {
     // reset variable
     localstream,remotestream,isconnectcreator,mediaconstraints,isconnectcreator,roomid = undefined,undefined,undefined,undefined,undefined,undefined
     c = 0
+    return True
 }
 
 
@@ -431,6 +485,22 @@ async function setLocalStream(mediaconstraints) {
     }
     localstream = stream
     localvideocomponent.srcObject = stream
+
+    var displayconstraints =  mediaconstraints
+    //TODO : change this
+    displayconstraints.video = {width: { max: 1920 },height: { max: 1080 },frameRate: {max: 15},cursor: "always"}
+    displayconstraints.audio = false
+    try 
+    {
+        sharestream = await navigator.mediaDevices.getDisplayMedia(displayconstraints)
+        localscreencomponent.srcObject = sharestream// test 
+    } 
+    catch (error) 
+    {
+        console.error('Could not get user screen', error)
+        sharescreen.value = "0"
+        sharescreen.innerHTML = "share screen"
+    }
 }
 
 
@@ -438,7 +508,16 @@ async function setLocalStream(mediaconstraints) {
 function addLocalTracks(peerid)
 {
     localstream.getTracks().forEach(
-        track => senders.push(rtcpeerconnection[peerid].addTrack(track, localstream))
+        track => {
+            console.log(track)
+            senders.push(rtcpeerconnection[peerid].addTrack(track, localstream))
+        }
+    )
+    sharestream.getTracks().forEach(
+        track => {
+            console.log(track)
+            senders.push(rtcpeerconnection[peerid].addTrack(track, sharestream))
+        }
     )
 }
 

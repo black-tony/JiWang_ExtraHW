@@ -193,12 +193,12 @@ def webrtcuploadblob(event):
     
     if roomid not in os.listdir('./record/'):
         os.mkdir('./record/{}'.format(roomid))
-
-    with open('./record/{}/{}.webm'.format(roomid, clientid), 'ab') as f:
+    recordType =  "camera" if event['mode'] < 2 else "screen"
+    with open('./record/{}/{}_{}.webm'.format(roomid, clientid, recordType), 'ab') as f:
         if event['data'] != [0]:
             f.write(event['data'])
 
-    if event['mode'] == 0:
+    if event['mode'] == 0 or event['mode'] == 2:
         emit('transfer_complete')
 
 
@@ -216,6 +216,11 @@ def recordTime(event):
 @socketio.on('leave')
 def leaveRoom(event):
     __output(f"receive leave event, clientid = {event['client']}")
+    try :
+        if event['client'] not in socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])]:
+            return 
+    except KeyError:
+        return
     try:
         how_many_people = len(socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])])
     except:
@@ -230,6 +235,19 @@ def leaveRoom(event):
         leave_room(event['room'])
         close_room(event['room'])
 
+
+@socketio.on('disconnect')
+def disconnect_event():
+    sid = request.sid
+    # print(sid)
+    event = {'client' : sid, 'room' : '1'}
+    leaveRoom(event)
+    
+@socketio.on("connect")
+def connect_event():
+    sid = request.sid
+    __output(f"connect event from {sid}")
+    
 
 # TODO : ¼ÇµÃÉ¾µô
 @app.route('/success', methods=['GET'])

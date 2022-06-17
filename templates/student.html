@@ -21,27 +21,33 @@
 
     .video-position {
       position: absolute;
-      top: 35%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 5%;
+      left: 5%;
+      margin: center;
     }
-
+    
     #video-chat-container {
-      width: 100%;
-      background-color: black;
+      /*width: 50%;*/
+      /*align-content: center;*/
+      /* position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center; */
+      background-color: none;
     }
 
-    /* #local-video {
-      position: absolute;
-      height: 30%;
-      width: 30%;
-      bottom: 0px;
-      left: 0px;
+   /* #local-video {
+      margin:auto
     } */
+    
+    #cam_table{
+      width: fit-content;
+    }
 
     .remote-video {
-      height: 30%;
-      width: 30%;
+      width: 80%;
+      height: auto;
+      background-color: aqua;
     }
 
     #buttondiv {
@@ -55,7 +61,7 @@
 </head>
 
 <body>
-  <div id="room-selection-container" class="centered">
+  <div id="room-selection-container" class="centered" style="display: block">
     <h1>WebRTC video conference(multiple)</h1>
     <br>
     MODE<br>
@@ -70,15 +76,32 @@
     <br><br>
   </div>
 
+  <!-- <center> -->
   <div id="video-chat-container" class="video-position" style="display: none">
-    <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video>
-    <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
     <div id="buttondiv">
       <button id="share-screen" value="0" disabled>share screen</button>
       <button id="hide-localbox" value="0" disabled>hide localbox</button>
       <button id="disconnect-button" disabled>wait for connect....</button>
     </div>
+    <br>
+    <br>
+    <table id="cam_table">
+      <tr>
+        <th>摄像头</th>
+        <th>屏幕共享</th>
+      </tr>
+      <tr>
+        <td>
+          <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video>
+        </td>
+        <td>
+          <video id="local-screen" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video>
+        </td>
+      </tr>
+    <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
+    </table>
   </div>
+<!-- </center> -->
   <!-- this is for Flask -->
   <script src="../static/js/socket.io.js"></script>
   <script src="../static/js/student.js"></script>

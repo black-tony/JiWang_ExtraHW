@@ -21,14 +21,14 @@
 
     .video-position {
       position: absolute;
-      top: 35%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 5%;
+      left: 5%;
+      margin: center;
     }
 
     #video-chat-container {
-      width: 100%;
-      background-color: black;
+      /*width: 100%;*/
+      background-color: none;
     }
 
     /* #local-video {
@@ -40,8 +40,8 @@
     } */
 
     .remote-video {
-      height: 30%;
-      width: 30%;
+      width: 40%;
+      height: 40%;
     }
 
     #buttondiv {
@@ -55,7 +55,7 @@
 </head>
 
 <body>
-  <div id="room-selection-container" class="centered">
+  <div id="room-selection-container" class="centered" style="display: none">
     <h1>WebRTC video conference(multiple)</h1>
     <br>
     MODE<br>
@@ -70,14 +70,17 @@
     <br><br>
   </div>
 
-  <div id="video-chat-container" class="video-position" style="display: none">
-    <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video>
+  <div id="video-chat-container" class="video-position" style="display: block">
+    <!-- <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video> -->
     <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
     <div id="buttondiv">
       <button id="share-screen" value="0" disabled>share screen</button>
       <button id="hide-localbox" value="0" disabled>hide localbox</button>
       <button id="disconnect-button" disabled>wait for connect....</button>
     </div>
+    <br>
+    <br>
+    <br>
   </div>
   <!-- this is for Flask -->
   <script src="../static/js/socket.io.js"></script>
