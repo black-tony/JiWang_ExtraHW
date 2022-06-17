@@ -1,14 +1,8 @@
 # coding=GB18030
-import configparser
+# import configparser
 from configparser import ConfigParser
-from click import getchar
-DEFAULT_DIR = "/home/webrtc/video"
-DEFAULT_FRAME_WIDTH = 1920
-DEFAULT_FRAME_HEIGHT = 1080
-DEFAULT_FRAME_RATE = 15
-DEFAULT_DISCONNECT = 15
-DEFAULT_SSL_CRT = "/etc/pki/tls/certs/cert.crt"
-DEFAULT_SSL_KEY = "/etc/pki/tls/private/cert.key"
+# from click import getchar
+from .MyConstants import DEFAULT_DIR, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_FRAME_RATE, DEFAULT_DISCONNECT, DEFAULT_SSL_CRT, DEFAULT_SSL_KEY
 
 
 config_info = {}
