@@ -9,7 +9,9 @@ const hidelocalbox = document.getElementById('hide-localbox')
 const videochatcontainer = document.getElementById('video-chat-container')
 const localvideocomponent = document.getElementById('local-video')
 const remotevideocomponent = document.getElementById('video-chat-container')
-const socket = io()
+const userid = document.getElementById('userid').innerHTML
+const username = document.getElementById('username').innerHTML
+const socket = io({closeOnBeforeunload: false})
 //  stun/turn servers.
 const iceservers = {
   iceServers: [
@@ -34,6 +36,7 @@ var mediarecorder
 var mediarecorder2
 // record audio or video
 var blob
+var inroom = false;
 // control webcam and audio
 var mediaconstraints
 // var for mode video or audio 
@@ -122,13 +125,15 @@ hidelocalbox.addEventListener('click', () => {
 
 
 // before close window or reload page warning
-window.addEventListener("beforeunload", function(event) {
-    event.returnValue = ''
-})
+window.onbeforeunload =  function(event) {
+    // socket.emit("actuall_exit")
+    // event.returnValue = ""
+}
 
 
 // close window or reload page will disconnect room
 window.addEventListener("unload", function(event) {
+    // socket.emit("actuall_exit")
     leaveRoom('1', clientid)
 })
 
@@ -143,6 +148,11 @@ socket.on('connect', () => {
         console.log('your client id :',socket.id)
     }
 });
+
+
+socket.on('disconnect', ()=>{
+    console.log("disconnect!")
+})
 
 // 1
 socket.on('start_call', async (event) => {
@@ -165,7 +175,7 @@ socket.on('start_call', async (event) => {
             startRecord(roomid)
             openBtn()
         }
-        //µ±∂‘√Ê∑¢ÀÕ“Ù ”∆µ¿¥ ±÷¥––
+        //ÂΩìÂØπÈù¢ÂèëÈÄÅÈü≥ËßÜÈ¢ëÊù•Êó∂ÊâßË°å
         rtcpeerconnection[peerid].ontrack = function(event){
             event.peerid = peerid
             console.log("enter some impossible function: student::ontrack")
@@ -175,7 +185,7 @@ socket.on('start_call', async (event) => {
             event.peerid = peerid
             sendIceCandidate2offer(event)
         }
-        await createOffer(peerid)
+        await createOffer(peerid, userid)
     }
 })
 
@@ -220,27 +230,39 @@ socket.on('transfer_complete', async () => {
     alert('transfer record complete!');
 })
 
+socket.io.on('reconnect_attempt', () =>{
+    console.log("reconnecting")
+})
 
+socket.on('get_killed', ()=>{
+    socket.close()
+    alert("ÊÇ®Â∑≤ÁªèÊéâÁ∫ø, ËØ∑ÈáçÊñ∞ËøûÊé•!")
+    window.location.href = "/timeout"//location.protocol +"://" + location.host + 
+
+})
 
 // -------------------------set logic function-------------------------------
 
 // this function into room and send room id
 async function joinRoom(room) {
     // get user local camera streams
+    inroom = true;
     await setLocalStream(mediaconstraints)
     roomid = room
     console.log("roomURL: ",location.href.split('?')[0]+'?mode='+mode+"&room="+roomid)
-    socket.emit('join', room, 0)
+    socket.emit('join', room, 0, userid, username)
     showVideoConference()
 }
 
 
 // this function to leave room 
 function leaveRoom(room,client){
+    if(inroom == false)
+        return
     stopRecord(room)
-    socket.emit('leave', {room:room,client:client})
+    socket.emit('leave', {room:room,client:client,userid:userid,username:username })
     leaveVideoConference({'From':client,'To':'all'})
-    alert('video coference closed, if you need new coversation, plz enter new room number');
+    // alert('video coference closed, if you need new coversation, plz enter new room number');
     // alert('WARNING :plz wait for the transfer to complete before closing this page!!');
 }
 
@@ -262,14 +284,14 @@ function startRecord(room){
     {
         console.log('can\'t recorde, plz check your mode')
     }
-    socket.emit('record_time',{roomid:room,clientid:clientid,mode:'start'})
+    socket.emit('record_time',{roomid:room,clientid:clientid,mode:'start',userid:userid,username:username})
 
-    //µ•Œª «ms
+    //Âçï‰ΩçÊòØms
     mediarecorder.start(3 * 1000);
     // event function
     mediarecorder.ondataavailable = function(e) {
         chunks.push(e.data);
-        socket.emit('upload_blob',{data:chunks.shift(),roomid:room,clientid:clientid,mode:1});
+        socket.emit('upload_blob',{data:chunks.shift(),roomid:room,clientid:clientid,mode:1,userid:userid,username:username});
         console.log('upload record !!');
     }
 
@@ -277,7 +299,7 @@ function startRecord(room){
     // event function
     mediarecorder2.ondataavailable = function(e) {
         chunks2.push(e.data);
-        socket.emit('upload_blob',{data:chunks2.shift(),roomid:room,clientid:clientid,mode:1 + 2});
+        socket.emit('upload_blob',{data:chunks2.shift(),roomid:room,clientid:clientid,mode:1 + 2,userid:userid,username:username});
         console.log('upload record_screen !!');
     }
 }
@@ -289,7 +311,7 @@ async function stopRecord(room)
     if(mediarecorder != undefined)
     {
         mediarecorder.stop()
-        await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop'})
+        await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop',userid:userid,username:username})
         console.log("recorder stopped");
         var atlast = chunks.length
         console.log("there are",atlast,"data need upload")
@@ -298,23 +320,23 @@ async function stopRecord(room)
             for (let i = 0; i < atlast; i++) {
                 if(i == atlast-1)
                 {
-                    await socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:0})
+                    await socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:0,userid:userid,username:username})
                 }
                 else
                 {
-                    await socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:1})
+                    await socket.emit('upload_blob',{data:chunks[i],roomid:room,clientid:clientid,mode:1,userid:userid,username:username})
                 }
             }
         }
         else
         {
-            await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0})
+            await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0,userid:userid,username:username})
         }
     }
     if(mediarecorder2 != undefined)
     {
         mediarecorder2.stop()
-        await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop'})
+        await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop',userid:userid,username:username})
         console.log("recorder stopped");
         var atlast = chunks2.length
         console.log("there are",atlast,"data need upload")
@@ -323,17 +345,17 @@ async function stopRecord(room)
             for (let i = 0; i < atlast; i++) {
                 if(i == atlast-1)
                 {
-                    await socket.emit('upload_blob',{data:chunks2[i],roomid:room,clientid:clientid,mode:0 + 2})
+                    await socket.emit('upload_blob',{data:chunks2[i],roomid:room,clientid:clientid,mode:0 + 2,userid:userid,username:username})
                 }
                 else
                 {
-                    await socket.emit('upload_blob',{data:chunks2[i],roomid:room,clientid:clientid,mode:1 + 2})
+                    await socket.emit('upload_blob',{data:chunks2[i],roomid:room,clientid:clientid,mode:1 + 2,userid:userid,username:username})
                 }
             }
         }
         else
         {
-            await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0 + 2})
+            await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0 + 2,userid:userid,username:username})
         }
     }
     return true
@@ -341,7 +363,7 @@ async function stopRecord(room)
 
 
 // start sharescreen function
-// TODO : ∞—π≤œÌ∆¡ƒªµƒreplace∏ƒ≥…Õ¨ ±
+// TODO : ÊääÂÖ±‰∫´Â±èÂπïÁöÑreplaceÊîπÊàêÂêåÊó∂
 async function startShareScreen(mediaconstraints){
     var displayconstraints =  mediaconstraints
     displayconstraints.video = {width: { max: 1920 },height: { max: 1080 },frameRate: {max: 30},cursor: "always"}
@@ -523,7 +545,7 @@ function addLocalTracks(peerid)
 
 
 // 1
-async function createOffer(peerid) {
+async function createOffer(peerid, user_id) {
     // var sessionDescription
     try 
     {
@@ -542,7 +564,8 @@ async function createOffer(peerid) {
         roomid,
         peerid:peerid,
         From:peerid.split(':')[1],
-        To:peerid.split(':')[0]
+        To:peerid.split(':')[0],
+        userid:user_id
     })
 }
 

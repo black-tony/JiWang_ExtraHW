@@ -8,7 +8,9 @@ const hidelocalbox = document.getElementById('hide-localbox')
 const videochatcontainer = document.getElementById('video-chat-container')
 const localvideocomponent = document.getElementById('local-video')
 const remotevideocomponent = document.getElementById('video-chat-container')
-const socket = io()
+const userid = document.getElementById('userid').innerHTML
+const username = document.getElementById('username').innerHTML
+const socket = io({closeOnBeforeunload: false})
 //  stun/turn servers.
 const iceservers = {
   iceServers: [
@@ -46,6 +48,7 @@ let isconnectcreator
 // Connection between the local device and the remote peer.
 var rtcpeerconnection = {}
 var videocontainers = {}
+var disconnect_detector = {}
 let roomid
 let clientid
 let lastconnect
@@ -100,13 +103,41 @@ socket.on('webrtc_offer', async (event) => {
             setRemoteStream(event)
             socket.emit('start_call', roomid)
         }
+        rtcpeerconnection[peerid].oniceconnectionstatechange = function(){
+            console.log(rtcpeerconnection[peerid].iceConnectionState)
+            switch(rtcpeerconnection[peerid].iceConnectionState)
+            {
+                case 'disconnected':
+                    console.error('detect peer disconnect!')
+                    disconnect_detector[peerid] = setTimeout(disconnect_peer, 5 * 1000, peerid, event['userid']) // TODO : Ê±¼äÔÝ¶¨15s
+                    break;
+                case 'failed':
+                    console.error('detect peer fail!')
+                    break;
+                case 'closed':
+                    console.error('detect connection close!')
+                    break;
+                case 'connected':
+                    if(disconnect_detector[peerid] != undefined)
+                    {
+                        clearTimeout(disconnect_detector[peerid])
+                        delete disconnect_detector[peerid]
+                    }
+                    break;
+                case 'connecting':
+                    console.error('detect connection connecting!')
+                default:
+                    break;
+
+            }
+        }
         rtcpeerconnection[peerid].onicecandidate = function(event){
             event.peerid = peerid
             sendIceCandidate2answer(event)
         }
         // RTCSessionDescription : return our info to remote computer
         rtcpeerconnection[peerid].setRemoteDescription(new RTCSessionDescription(event['sdp']))
-        await createAnswer(peerid)
+        await createAnswer(peerid, userid)
     }
     else
     {
@@ -147,6 +178,18 @@ socket.on('transfer_complete', async () => {
 
 // -------------------------set logic function-------------------------------
 
+
+function disconnect_peer(peerid, user_id)
+{
+    let teacher_sid = peerid.split(':')[0]
+    let student_sid = peerid.split(':')[1]
+    if(teacher_sid != clientid)
+        console.error("disconnect_peer error!")
+    socket.emit('detect_disconnect', student_sid, user_id)
+    delete disconnect_detector[peerid]
+}
+
+
 // this function into room and send room id
 async function joinRoom(room) 
 {
@@ -154,7 +197,7 @@ async function joinRoom(room)
     // await setLocalStream(mediaconstraints)
     roomid = room
     console.log("roomURL: ",location.href.split('?')[0]+'?mode='+mode+"&room="+roomid)
-    socket.emit('join', room, 9)
+    socket.emit('join', room, 9, userid, username)
     showVideoConference()
 }
 
@@ -163,7 +206,7 @@ async function joinRoom(room)
 function leaveRoom(room,client){
     // stopRecord(room)
     
-    socket.emit('leave', {room:room, client:client})
+    socket.emit('leave', {room:room, client:client,userid:userid,username:username })
     leaveVideoConference({'From':client,'To':'all'})
     alert('video coference closed, if you need new coversation, plz enter new room number');
         // alert('WARNING :plz wait for the transfer to complete before closing this page!!');
@@ -219,8 +262,6 @@ function leaveVideoConference(event) {
 
 
 function removeRemoteStream(event) {
-    var d1 = document.getElementById(event['From']+':'+event['To'] + "_1") || document.getElementById(event['To']+':'+event['From'] + "_1")
-    var d2 = document.getElementById(event['From']+':'+event['To'] + "_2") || document.getElementById(event['To']+':'+event['From'] + "_2")
     // try
     // {
     //     d1.remove()
@@ -267,7 +308,7 @@ function removeRemoteStream(event) {
 }
 
 // 2
-async function createAnswer(peerid) {
+async function createAnswer(peerid, user_id) {
     // var sessionDescription
     try 
     {
@@ -288,7 +329,8 @@ async function createAnswer(peerid) {
         roomid,
         peerid:peerid,
         From:peerid.split(':')[0],
-        To:peerid.split(':')[1]
+        To:peerid.split(':')[1],
+        userid:user_id
     })
 }
 

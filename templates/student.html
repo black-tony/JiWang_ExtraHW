@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 
 <head>
   <meta charset="UTF-8" />
@@ -17,13 +17,14 @@
       top: 40%;
       left: 50%;
       transform: translate(-50%, -50%);
+      width: 100%; text-align: center;
     }
 
     .video-position {
       position: absolute;
       top: 5%;
       left: 5%;
-      margin: center;
+      text-align: center;
     }
     
     #video-chat-container {
@@ -50,8 +51,9 @@
       background-color: aqua;
     }
 
-    #buttondiv {
+    .buttondiv {
       position: absolute;
+      text-align: center;
     }
 
     #testarea {
@@ -62,32 +64,27 @@
 
 <body>
   <div id="room-selection-container" class="centered" style="display: block">
-    <h1>WebRTC video conference(multiple)</h1>
-    <br>
-    MODE<br>
-    <input type="radio" value="1" name="location">only sound<br>
-    <input type="radio" value="2" name="location">only video<br>
-    <input type="radio" value="3" name="location">both<br>
-    <br>
-    <label>Enter the number of the room you want to connect</label>
-    <input id="room-input" type="text" />
-    <br>
+    <h1>WebRTC video conference</h1>
+    <h2>你好, {{username}}, 请点击下方按钮开始共享视频与屏幕!</h2>
     <button id="connect-button">CONNECT</button>
-    <br><br>
+    <!-- <br><br> -->
   </div>
 
   <!-- <center> -->
   <div id="video-chat-container" class="video-position" style="display: none">
+    <div id = "userid" >{{userid}}</div>
+    <div id = "username">{{username}}</div>
     <div id="buttondiv">
-      <button id="share-screen" value="0" disabled>share screen</button>
-      <button id="hide-localbox" value="0" disabled>hide localbox</button>
-      <button id="disconnect-button" disabled>wait for connect....</button>
+      <button id="share-screen" value="0" disabled>录制镜头</button>
+      <button id="hide-localbox" value="0" disabled>录制屏幕</button>
+      <button id="disconnect-button" disabled>录制音频</button>
+      <button id="null-button" disabled>断开连接</button>
     </div>
     <br>
     <br>
     <table id="cam_table">
       <tr>
-        <th>摄像头</th>
+        <th>录制镜头</th>
         <th>屏幕共享</th>
       </tr>
       <tr>
