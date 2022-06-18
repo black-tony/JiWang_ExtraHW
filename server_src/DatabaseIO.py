@@ -47,7 +47,7 @@ class Student(db.Model):
         return f"<Student {self.stu_grade}:{self.stu_no} >"
         
 
-print("DB_FINISH!")
+# print("DB_FINISH!")
 
 
 

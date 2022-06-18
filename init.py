@@ -1,7 +1,14 @@
 # coding=GB18030
+from crypt import methods
+from datetime import datetime
+from distutils.log import debug
+from email.mime import audio
 from hashlib import md5
+import shutil
+import threading
 import ffmpeg
 import random
+import os
 import sys
 import time
 import flask
@@ -21,6 +28,7 @@ teacher_sid = None
 callingList = {}
 sid_to_clientid = {}
 userid_to_sid = {}
+userid_to_logtime = {}
 teacher_killed = []
 ROOM_NAME = '1'
 
@@ -32,23 +40,80 @@ else:
     read_from_config_file("./webrtc-Tony.conf")
     
     
-
+def RemoveDir(filepath):
+    if not os.path.exists(filepath):
+        os.mkdir(filepath)
+    else:
+        shutil.rmtree(filepath)
+        os.mkdir(filepath)
 # print(ssl_certificate, ssl_certificate_key)
 
+RemoveDir("./record/") # TODO : 更改
 # 功能性函数
 
-def __output(*message):
+def debug_output(*message):
     if DEBUG:
         print(message)
 
+def check_password_strength(password):
+    return True # TODO 限制
+    if len(password) < 8 or len(password) > 16:
+        return False
 
-def decode_record(filename : str):
-    basename = filename[0:filename.rfind('.')]
-    stream = ffmpeg.input(basename + '.webm')
-    stream = ffmpeg.filter(stream, "scale", config_info['width'], config_info['height'])
-    stream = ffmpeg.filter(stream, "fps", config_info['frame'])
-    stream = ffmpeg.output(stream, basename + '.mp4')
-    ffmpeg.run(stream)
+    digit = False
+    other = False
+    alpha = False
+    for i in password:
+        if i.isdigit():
+            digit = True
+        elif i.isalpha():
+            alpha = True
+        else:
+            other = True
+    
+    if digit and other and alpha:
+        return True
+    else:
+        return False
+
+def decode_record(fin : str, fout : str):
+    probe = ffmpeg.probe(fin)
+    have_audio = False
+    have_video = False
+    for i in probe['streams']:
+        if(i['codec_type'] == 'audio'):
+            have_audio = True
+        elif(i['codec_type'] == 'video'):
+            have_video = True
+    stream = ffmpeg.input(fin)
+    streamaudio = stream.audio
+    streamvideo = stream.video
+    # stream = ffmpeg.filter(stream, "scale", config_info['frame']['width'], config_info['frame']['height'])
+    streamvideo = ffmpeg.filter(streamvideo, "fps", config_info['frame']['rate'])
+    # stream = ffmpeg.filter(stream, 'loglevel', 'quiet')
+    if have_audio and have_video:
+        stream = ffmpeg.output(streamaudio, streamvideo, fout,  **{'loglevel':'quiet'})
+    elif have_audio:
+        stream = ffmpeg.output(streamaudio, fout,  **{'loglevel':'quiet'})
+    else:
+        stream = ffmpeg.output(streamvideo, fout,  **{'loglevel':'quiet'})
+    stream = ffmpeg.overwrite_output(stream)
+    pip = ffmpeg.run_async(stream)
+    pip.communicate()
+
+class DecodeThread (threading.Thread):
+    def __init__(self, fin, fout):
+        threading.Thread.__init__(self)
+        self.fin = fin
+        self.fout = fout
+    def run(self):
+        decode_record(self.fin, self.fout)
+        # os.remove(self.fin)
+        debug_output(f"{self.fin} decode finish!")
+        # print_time(self.name, self.delay, 5)
+        # print ("退出线程：" + self.name)
+
+
     
 def get_new_sid(clientsid : str):
     new_sid = None
@@ -58,7 +123,7 @@ def get_new_sid(clientsid : str):
             new_sid = i
             break
     if(new_sid == None):
-        __output("Target not find!")
+        debug_output("Target not find!")
         return clientsid
     else:
         return new_sid
@@ -75,27 +140,30 @@ def website():
         user_id = request.form['ID']
         user_password = request.form['passwd']
         login_status = -1
-        user_userlevel = 0
+        user_userlevel = '0'
         #-1: 用户名/密码错误, 0 : 正常, 1 : 需要更改密码 
         with app.app_context():
-            satisfy_user = Student.query.filter_by(stu_no=user_id, stu_password=user_password).first()
+            satisfy_user = Student.query.filter_by(stu_no=user_id, stu_password=user_password).first()#
             satisfy_user : Student
+            # print(f"passwd = {satisfy_user.stu_password}, hashcode = {calcans}")
             if not satisfy_user:
                 login_status = -1
-            elif user_password == md5(user_id):
-                login_status = 0 # TODO : 添加更改密码界面
+            elif user_password == md5(satisfy_user.stu_no.encode("GB18030")).hexdigest():
+                login_status = 1 
                 user_userlevel = satisfy_user.stu_userlevel
             else :
                 login_status = 0
                 user_userlevel = satisfy_user.stu_userlevel
         
         if login_status == 1:
-            return redirect(url_for('change_password', user_id = user_id))
+            resp = make_response(redirect(url_for('change_password', user_id = user_id)))
+            resp.set_cookie('userid', user_id)
+            return resp
         elif login_status == -1:
             # __output("login fail")
             return render_template("index.html", user_id=user_id)
         else :
-            if user_userlevel <= 5 and user_userlevel >= 0:
+            if user_userlevel == '0':
                 resp = make_response(redirect(url_for('student_record', user_id = user_id)))
                 resp.set_cookie('userid', user_id)
                 resp.set_cookie('userlevel', user_userlevel)
@@ -107,25 +175,43 @@ def website():
                 return resp
 
 
-@app.route('/change_password/<user_id>', methods=['GET', 'POST'])
-def change_psasword(user_id):
+@app.route('/change_password/<user_id>', methods=['GET'])
+def change_password(user_id):
     if(request.method == 'GET'):
+        if 'userid' not in request.cookies:
+            return redirect("website")
         return render_template("change_password.html", user_id = user_id, test_result = 1)
+        
+
+@app.route("/change_password", methods=['POST'])
+def check_passwd():
+    passwd1 = request.form['passwd1']
+    passwd2 = request.form['passwd2']
+    userid = request.cookies['userid']
+    # debug_output("accept!")
+    if(passwd1 == passwd2) :
+        with app.app_context():
+            debug_output(userid)
+            satisfy_user = Student.query.filter_by(stu_no=userid).first()
+            satisfy_user : Student
+            satisfy_user.stu_password = passwd1
+            db.session.commit()
+        return redirect(url_for('website'))
     else :
-        passwd1 = request.form['passwd1']
-        passwd2 = request.form['passwd2']
-        if(passwd1 == passwd2) :
-            return redirect(url_for('website'))
-        else :
-            return render_template("change_password.html", user_id = user_id, test_result = 0)
+        return render_template("change_password.html", user_id = userid, test_result = 0)
+
 
 
 @app.route('/student/?<string:user_id>', methods=['GET', 'POST'])
 def student_record(user_id):
+    if 'userid' not in request.cookies or 'username' not in request.cookies:
+        return redirect('website') 
     return render_template("./student.html")
 
 @app.route('/teacher/?<string:user_id>', methods=['GET', 'POST'])
 def teacher_monitor(user_id):
+    if 'userid' not in request.cookies or 'username' not in request.cookies:
+        return redirect('website') 
     return "NULL"
 
 
@@ -177,12 +263,13 @@ def test_db():
     with app.app_context():
         users = Student.query.all()
         # print(users)
-        # print("---------")
-        users = Student.query.filter_by(stu_no="1234567").all()
         # print(users)
         # print("---------")
+        users = Student.query.filter_by(stu_no="1234567").first()
+        print(users.stu_grade)
+        # print("---------")
         users = Student.query.filter_by(stu_no="1234567", stu_grade="0000").all()
-        # print("None" if not users else users)
+        print("None" if not users else users)
         # print("---------")
     
     return "Hello!"
@@ -199,22 +286,27 @@ def creatOrJoin(roomid, userLevel, userid, username):
     global teacher_sid
     global userid_to_sid
     global sid_to_clientid
+    global userid_to_logtime
     
-    __output(f"receive join event, roomid = {roomid}, sessionId = {request.sid}, userLevel = {userLevel}")
+    debug_output(f"receive join event, roomid = {roomid}, sessionId = {request.sid}, userLevel = {userLevel}")
     join_room(room=roomid)
     
     
     if userid in userid_to_sid:
-        __output("impossible event! join with a previous sid!")
+        debug_output("impossible event! join with a previous sid!")
         return
     userid_to_sid[userid] = request.sid
     sid_to_clientid[request.sid] = request.sid
+    nowtime = datetime.now()
     
+    timeformated ="-{:0>4}-{:0>2}-{:0>2}-{:0>2}-{:0>2}-{:0>2}".format(
+        nowtime.year, nowtime.month, nowtime.day, nowtime.hour, nowtime.minute, nowtime.second)
+    userid_to_logtime[userid] = timeformated
     
     # student
     if userLevel >= 0 and userLevel <= 5:
         if not room_with_teacher:
-            __output(f"room joined, sid = {request.sid}")
+            debug_output(f"room joined, sid = {request.sid}")
         else :
             if len(callingList) == 0 or len(callingList[roomid]) == 0:
                 callingList[roomid] = []
@@ -242,12 +334,12 @@ def creatOrJoin(roomid, userLevel, userid, username):
 @socketio.on('start_call')
 def startCall(roomid):
     userid = request.cookies['userid']
-    __output(f"receive start_call event, roomid = {roomid}, sessionId = {userid_to_sid[userid]}")
+    debug_output(f"receive start_call event, roomid = {roomid}, sessionId = {userid_to_sid[userid]}")
     
     try:
         result = callingList[roomid].pop(0)
         if len(callingList) == 0:
-            __output(f"impossible event: callingList empty")
+            debug_output(f"impossible event: callingList empty")
         if len(callingList) == 0 or len(callingList[roomid]) == 0:
             emit('start_call', {'From': result['From'], 'To': result['To'], 'lastconnect': True}, room=result['room'])
         else:
@@ -257,14 +349,14 @@ def startCall(roomid):
 
 @socketio.on('webrtc_offer')
 def webrtcOffer(event):
-    __output(f"receive webrtc_offer event, from = {event['From']}, to = {event['To']}, room = {get_new_sid(event['To'])}")
+    debug_output(f"receive webrtc_offer event, from = {event['From']}, to = {event['To']}, room = {get_new_sid(event['To'])}")
     emit('webrtc_offer', {'sdp': event['sdp'], 'peerid': event['peerid'], 'From': event['From'], 'To': event['To'], 'userid' : event['userid']},
          room=get_new_sid(event['To']))
 
 
 @socketio.on('webrtc_answer')
 def webrtcAnswer(event):
-    __output(f"receive webrtc_answer event, from = {event['From']}, to = {event['To']}, room = {get_new_sid(event['To'])}")
+    debug_output(f"receive webrtc_answer event, from = {event['From']}, to = {event['To']}, room = {get_new_sid(event['To'])}")
     
     # print('webrtc_answer event to peers in room {}'.format(event['roomid']))
     emit('webrtc_answer', {'sdp': event['sdp'], 'peerid': event['peerid'], 'From': event['From'], 'To': event['To'], 'userid' : event['userid']},
@@ -274,7 +366,7 @@ def webrtcAnswer(event):
 @socketio.on('webrtc_ice_candidate')
 def webrtcIceCandidate(event):
     # print(event)
-    __output(f"receive webrtc_ice_candidate event", "\n", f" peerid = {event['peerid']},room = {get_new_sid(event['To'])}")
+    debug_output(f"receive webrtc_ice_candidate event", "\n", f" peerid = {event['peerid']},room = {get_new_sid(event['To'])}")
     # print('webrtc_ice_candidate event to peers in room {}'.format(event['roomid']))
     
     
@@ -286,7 +378,7 @@ def webrtcuploadblob(event):
     # global sid_to_userid
     # roomid = event['roomid']
     # clientid = event['clientid']
-    __output(f"receive upload_blob event, userid = {event['userid']}, mode = {event['mode']}")
+    debug_output(f"receive upload_blob event, userid = {event['userid']}, mode = {event['mode']}")
     
     # if roomid not in os.listdir('./record/'):
     #     os.mkdir('./record/{}'.format(roomid))
@@ -297,13 +389,45 @@ def webrtcuploadblob(event):
     #     __output("How to get here?")
         
     # TODO 更改路径
-    #TODO 添加时间信息
-    with open('./record/u{}-{}-{}.webm'.format(event['userid'], event['username'], recordType), 'ab') as f:
+    time_str = None
+    try:
+        time_str = userid_to_logtime[event['userid']]
+    except:
+        return
+        
+    with open('./record/u{}-{}-{}{}.webm'.format(event['userid'], event['username'], recordType, time_str), 'ab') as f:
         if event['data'] != [0]:
             f.write(event['data'])
 
-    if event['mode'] == 0 or event['mode'] == 2:
-        emit('transfer_complete')
+    # if event['mode'] == 0 or event['mode'] == 2:
+    #     emit('transfer_complete')
+    #     users = None
+    #     users : Student
+    #     with app.app_context():
+    #         users = Student.query.filter_by(stu_no=event['userid']).first()
+    #     #TODO : 正式版之前要注释
+    #     users = Student(0, event['userid'], "NULL", "123","0","0","0","0","0","0",'0','0')
+    #     if users == None:
+    #         return
+    #     nowtime = datetime.now()
+    
+    #     timeformated ="-{:0>4}-{:0>2}-{:0>2}-{:0>2}-{:0>2}-{:0>2}".format(
+    #         nowtime.year, nowtime.month, nowtime.day, nowtime.hour, nowtime.minute, nowtime.second)
+        
+    #     videobasename = "./record/" + "u{}-{}-video".format(
+    #         users.stu_no, users.stu_name)
+    #     screenbasename = "./record/" + "u{}-{}-screen".format(
+    #         users.stu_no, users.stu_name)
+    #     videosrcname = videobasename+".webm"
+    #     videotargetname = videobasename + timeformated + ".mp4"
+    #     screensrcname = screenbasename+".webm"
+    #     screentargetname = screenbasename + timeformated + ".mp4"
+    #     if os.path.isfile(videosrcname) and event['mode'] == 0:
+    #         newthread1 = DecodeThread(videosrcname, videotargetname)
+    #         newthread1.start()
+    #     if os.path.isfile(screensrcname) and event['mode'] == 2:
+    #         newthread2 = DecodeThread(screensrcname, screentargetname)
+    #         newthread2.start()
 
 
 @socketio.on('record_time')
@@ -337,32 +461,50 @@ def leaveRoom(event):
     try:
         del sid_to_clientid[now_sid]
         del userid_to_sid[userid]
+        del userid_to_logtime[userid]
     except:
         pass
     
-    __output(f"receive leave event, clientid = {clientid}, userid = {userid}")
+    debug_output(f"receive leave event, clientid = {clientid}, userid = {userid}")
     try :
         if now_sid not in socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])]:
-            __output("notin!")
-            return 
+            debug_output("notin!")
+            # return 
     except KeyError:
-        __output("keyError")
+        debug_output("keyError")
         return
-    try:
-        how_many_people = len(socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])])
-    except:
-        how_many_people = 1
-    if 1 < how_many_people <= 6:
-        if clientid != teacher_sid:
-            emit('leave_room', {'From': clientid, 'To': teacher_sid}, room=get_new_sid(teacher_sid))
+    
+    # if 1 < how_many_people <= 6:
+    if clientid != teacher_sid:
+        emit('leave_room', {'From': clientid, 'To': teacher_sid}, room=get_new_sid(teacher_sid))
         # for i in socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])]:
             # if i != event['client']:
                 
-        leave_room(event['room'])
-    else:
+        # leave_room(event['room'])
+    # else:
         # emit('close_room', {'F': event['client'], 'T': 'all'}, room=event['client'])
-        leave_room(event['room'])
-        close_room(event['room'])
+    leave_room(event['room'])
+        # close_room(event['room'])
+    # 开始视频转码
+    try:
+        how_many_people = len(socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])])
+    except:
+        how_many_people = 0
+    if how_many_people == 0:
+        print("----------------------------------------")
+        print("开始视频转码")
+
+        record_list = os.listdir("./record/")
+        for i in record_list:
+            a = i.split('.')
+            if len(a) < 2:
+                continue
+            if a[1] == 'webm':
+                videosrcname = "./record/" + i
+                videotargetname = "./record/" + a[0] + ".mp4"
+                newthread1 = DecodeThread(videosrcname, videotargetname)
+                newthread1.start()
+    
 
 
 @socketio.on('disconnect')
@@ -372,12 +514,13 @@ def disconnect_event():
     # socketio.manage_session
     sid = request.sid
     # print(sid)
-    __output(f"detect {sid} disconnect!")
+    debug_output(f"detect {sid} disconnect!")
     # event = {'client' : sid, 'room' : '1'}
     # leaveRoom(event)
     
 @socketio.on("connect")
 def connect_event():
+    
     # disconnect(request.sid)
     # 检查是否存在, 要设置双向内容
     # 检查是否被老师断开
@@ -390,12 +533,13 @@ def connect_event():
     
     global sid_to_clientid
     global userid_to_sid
-    __output("connect event!")
+    debug_output("connect event!")
     userid = request.cookies['userid'] 
     now_sid = request.sid
+    debug_output(f"connect event from {now_sid}")
     if userid in userid_to_sid:
         leave_room(ROOM_NAME, sid=userid_to_sid[userid])
-        __output(f'history_sid = {userid_to_sid[userid]}, nowsid = {now_sid}')
+        debug_output(f'history_sid = {userid_to_sid[userid]}, nowsid = {now_sid}')
         old_sid = userid_to_sid[userid]
 
         clientid = sid_to_clientid[old_sid]
@@ -409,16 +553,17 @@ def connect_event():
         
     
     # sid_to_userid[sid] = request.cookies['userid']
-    __output(f"connect event from {now_sid}")
+    
     
 
 @socketio.on("detect_disconnect")
 def detect_disconnect(sid, userid):
-    __output(f"teacher detect user {userid}disconnect!")
+    debug_output(f"teacher detect user {userid}disconnect!")
     sid_to_kill = get_new_sid(sid)
-    event = {'client' : sid, 'userid' : userid, 'room' : ROOM_NAME}
-    leaveRoom(event)
+    event = {'client' : sid, 'userid' : userid, 'room' : ROOM_NAME, 'teacher_killed' : 1}
     teacher_killed.append(userid)
+    leaveRoom(event)
+    
     disconnect(sid=sid_to_kill)
     # 
     # leave_room(event)
@@ -436,7 +581,7 @@ def reconnect_success(clientid):
 # TODO 删除这个事件
 @socketio.on("actuall_exit")
 def actuall_exit():
-    __output("TRUELY_EXITING")
+    debug_output("TRUELY_EXITING")
 
 
 

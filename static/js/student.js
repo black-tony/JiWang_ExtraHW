@@ -63,7 +63,7 @@ let teacher_sid
 // click button event binding function
 connectbtn.addEventListener('click', async () => {
     mode = 3
-    
+    connectbtn.disabled = true
     mediaconstraints = {
         audio: {
             echoCancellation: true,
@@ -132,9 +132,9 @@ window.onbeforeunload =  function(event) {
 
 
 // close window or reload page will disconnect room
-window.addEventListener("unload", function(event) {
+window.addEventListener("unload", async function(event) {
     // socket.emit("actuall_exit")
-    leaveRoom('1', clientid)
+    await leaveRoom('1', clientid)
 })
 
 
@@ -175,7 +175,7 @@ socket.on('start_call', async (event) => {
             startRecord(roomid)
             openBtn()
         }
-        //å½“å¯¹é¢å‘é€éŸ³è§†é¢‘æ¥æ—¶æ‰§è¡Œ
+        //µ±¶ÔÃæ·¢ËÍÒôÊÓÆµÀ´Ê±Ö´ĞĞ
         rtcpeerconnection[peerid].ontrack = function(event){
             event.peerid = peerid
             console.log("enter some impossible function: student::ontrack")
@@ -236,7 +236,7 @@ socket.io.on('reconnect_attempt', () =>{
 
 socket.on('get_killed', ()=>{
     socket.close()
-    alert("æ‚¨å·²ç»æ‰çº¿, è¯·é‡æ–°è¿æ¥!")
+    alert("ÄúÒÑ¾­µôÏß, ÇëÖØĞÂÁ¬½Ó!")
     window.location.href = "/timeout"//location.protocol +"://" + location.host + 
 
 })
@@ -256,11 +256,11 @@ async function joinRoom(room) {
 
 
 // this function to leave room 
-function leaveRoom(room,client){
+async function leaveRoom(room,client){
     if(inroom == false)
         return
-    stopRecord(room)
-    socket.emit('leave', {room:room,client:client,userid:userid,username:username })
+    await stopRecord(room)
+    await socket.emit('leave', {room:room,client:client,userid:userid,username:username,teacher_killed: 0})
     leaveVideoConference({'From':client,'To':'all'})
     // alert('video coference closed, if you need new coversation, plz enter new room number');
     // alert('WARNING :plz wait for the transfer to complete before closing this page!!');
@@ -286,7 +286,7 @@ function startRecord(room){
     }
     socket.emit('record_time',{roomid:room,clientid:clientid,mode:'start',userid:userid,username:username})
 
-    //å•ä½æ˜¯ms
+    //µ¥Î»ÊÇms
     mediarecorder.start(3 * 1000);
     // event function
     mediarecorder.ondataavailable = function(e) {
@@ -363,7 +363,7 @@ async function stopRecord(room)
 
 
 // start sharescreen function
-// TODO : æŠŠå…±äº«å±å¹•çš„replaceæ”¹æˆåŒæ—¶
+// TODO : °Ñ¹²ÏíÆÁÄ»µÄreplace¸Ä³ÉÍ¬Ê±
 async function startShareScreen(mediaconstraints){
     var displayconstraints =  mediaconstraints
     displayconstraints.video = {width: { max: 1920 },height: { max: 1080 },frameRate: {max: 30},cursor: "always"}

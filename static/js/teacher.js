@@ -109,7 +109,7 @@ socket.on('webrtc_offer', async (event) => {
             {
                 case 'disconnected':
                     console.error('detect peer disconnect!')
-                    disconnect_detector[peerid] = setTimeout(disconnect_peer, 5 * 1000, peerid, event['userid']) // TODO : 时间暂定15s
+                    disconnect_detector[peerid] = setTimeout(disconnect_peer, 10 * 1000, peerid, event['userid']) // TODO : 时间暂定15s
                     break;
                 case 'failed':
                     console.error('detect peer fail!')
@@ -206,7 +206,7 @@ async function joinRoom(room)
 function leaveRoom(room,client){
     // stopRecord(room)
     
-    socket.emit('leave', {room:room, client:client,userid:userid,username:username })
+    socket.emit('leave', {room:room, client:client,userid:userid,username:username,teacher_killed: 0})
     leaveVideoConference({'From':client,'To':'all'})
     alert('video coference closed, if you need new coversation, plz enter new room number');
         // alert('WARNING :plz wait for the transfer to complete before closing this page!!');
