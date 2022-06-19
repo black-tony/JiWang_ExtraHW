@@ -20,7 +20,8 @@ class Student(db.Model):
     stu_userlevel = db.Column(db.String(1), nullable=False, default='0')
     stu_enable = db.Column(db.String(1), nullable=False, default='1')
     
-    def __init__(self, stu_grade, 
+    def __init__(self, 
+                 stu_grade, 
                  stu_no, stu_name, 
                  stu_password, 
                  stu_sex, 
@@ -45,7 +46,21 @@ class Student(db.Model):
         self.stu_enable = stu_enable
     def __repr__(self):
         return f"<Student {self.stu_grade}:{self.stu_no} >"
-        
+    
+    def get_dict(self):
+        return {
+            "stu_grade"         : self.stu_grade,
+            "stu_no"            : self.stu_no,
+            "stu_name"          : self.stu_name,
+            "stu_password"      : self.stu_password,
+            "stu_sex"           : self.stu_sex,
+            "stu_class_fname"   : self.stu_class_fname,
+            "stu_class_sname"   : self.stu_class_sname,
+            "stu_term"          : self.stu_term,
+            "stu_cno"           : self.stu_cno,
+            "stu_wtype"         : self.stu_wtype,
+            "stu_userlevel"     : self.stu_userlevel,
+            "stu_enable"        : self.stu_enable}
 
 # print("DB_FINISH!")
 

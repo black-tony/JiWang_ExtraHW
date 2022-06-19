@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="GB18030" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WebRTC</title>
 
@@ -42,6 +42,7 @@
     .remote-video {
       width: 40%;
       height: 40%;
+      background-color: aqua;
     }
 
     #buttondiv {
@@ -71,6 +72,7 @@
   </div>
   <div id = "userid" style="display: none">{{userid}}</div>
   <div id = "username" style="display: none">{{username}}</div>
+  <div id = "disconnect-time" style="display: none">{{disconnect_time}}</div>
   <div id="video-chat-container" class="video-position" style="display: block">
     <!-- <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video> -->
     <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
@@ -82,10 +84,17 @@
     <br>
     <br>
     <br>
+    {% for i in satisfy_user %}
+        <div id = {{i.stu_no}}>
+          <div id = {{i.stu_no ~ "_monitor"}}> {{i.stu_no ~ " " ~ i.stu_name ~ " Î´Á¬½Ó"}}</div>
+          <video class="remote-video" id={{i.stu_no ~ "_1"}} autoplay="autoplay" playsinline="playsInline"></video>
+          <video class="remote-video" id={{i.stu_no ~ "_2"}} autoplay="autoplay" playsinline="playsInline"></video>
+        </div>
+    {% endfor %}
   </div>
   <!-- this is for Flask -->
   <script src="../static/js/socket.io.js"></script>
-  <script src="../static/js/teacher.js"></script>
+  <script src="../static/js/teacher.js" charset="GB18030"></script>
 
 </body>
 

@@ -1,28 +1,28 @@
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<title>鏂囨。鏍囬</title>
+<meta charset="GB18030">
+<title>文档标题</title>
 </head>
  
 <body>
     <br><br><br><br><br><br>
-    <center><h2>鐧诲綍鐣岄潰</h2></center>
+    <center><h2>登录界面</h2></center>
     <br><br><br><br><br><br>
     <center>
     <form name="login" action="/" method="post">
-        瀛﹀彿: <input type="text" name="ID" value="{{user_id}}"> <br>
-        瀵嗙爜: <input type="password" name="passwd"> <br>
-        <input type="submit" value="鐧诲綍">
+        学号: <input type="text" name="ID" value="{{user_id}}"> <br>
+        密码: <input type="password" name="passwd"> <br>
+        <input type="submit" value="登录">
     </form>
     </center>
     <br>
 
-    <a href='{{url_for("test_student_record")}}'>娴嬭瘯瀛︾敓</a>
+    <a href='{{url_for("test_student_record")}}' style="display: none">测试学生</a>
     <br>
-    <a href='{{url_for("test_teacher_monitor")}}'>娴嬭瘯鑰佸笀</a>
+    <a href='{{url_for("test_teacher_monitor")}}' style="display: none">测试老师</a>
     <br>
-    <a href="./YangTest/" >璺宠浆娴嬭瘯</a>
+    <a href="./YangTest/"  style="display: none">跳转测试</a>
 
 </body>
  

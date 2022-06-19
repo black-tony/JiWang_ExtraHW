@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="GB18030" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>WebRTC</title>
 
@@ -65,7 +65,7 @@
 <body>
   <div id="room-selection-container" class="centered" style="display: block">
     <h1>WebRTC video conference</h1>
-    <h2>浣犲ソ, {{username}}, 璇风偣鍑讳笅鏂规寜閽紑濮嬪叡浜棰戜笌灞忓箷!</h2>
+    <h2>你好, {{username}}, 请点击下方按钮开始共享视频与屏幕!</h2>
     <button id="connect-button">CONNECT</button>
     <!-- <br><br> -->
   </div>
@@ -74,18 +74,21 @@
   <div id="video-chat-container" class="video-position" style="display: none">
     <div id = "userid" >{{userid}}</div>
     <div id = "username">{{username}}</div>
+    <div id = "framerate" style="display: none">{{framerate}}</div>
+    <div id = "frameheight" style="display: none">{{frameheight}}</div>
+    <div id = "framewidth" style="display: none">{{framewidth}}</div>
     <div id="buttondiv">
-      <button id="share_camera" value="0" disabled>褰曞埗闀滃ご</button>
-      <button id="share_screen" value="0" disabled>褰曞埗灞忓箷</button>
-      <button id="share_video" disabled>褰曞埗闊抽</button>
-      <button id="disconnect_button" disabled>鏂紑杩炴帴</button>
+      <button id="share-camera" value="0" disabled>开始录制镜头</button>
+      <button id="share-screen" value="0" disabled>开始录制屏幕</button>
+      <button id="share-video" value="0" disabled>开始录制视频+音频</button>
+      <button id="disconnect-button" disabled>断开连接</button>
     </div>
     <br>
     <br>
     <table id="cam_table">
       <tr>
-        <th>褰曞埗闀滃ご</th>
-        <th>灞忓箷鍏变韩</th>
+        <th>录制镜头</th>
+        <th>屏幕共享</th>
       </tr>
       <tr>
         <td>
@@ -101,7 +104,7 @@
 <!-- </center> -->
   <!-- this is for Flask -->
   <script src="../static/js/socket.io.js"></script>
-  <script src="../static/js/student.js"></script>
+  <script src="../static/js/student.js" charset="GB18030"></script>
 
 </body>
 
