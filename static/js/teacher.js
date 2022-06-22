@@ -21,12 +21,13 @@ const iceservers = {
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
     { urls: 'stun:stun2.l.google.com:19302' }
-    // ,
-    // {
-	// 	url: "turn:8.130.97.48:3478",
-	// 	credential: 'Tony020731',
-	// 	username: 'BlackTony'
-	// }
+    ,
+    {
+		urls: "turn:8.130.97.48:3478",
+		credential: 'Tony020731',
+		username: 'BlackTony'
+	},
+    {urls: 'stun:8.130.97.48:3478'}
   //  { urls: 'stun:stun3.l.google.com:19302' }
   ],
 }
@@ -51,6 +52,7 @@ var recoder
 
 
 let senders = []
+let inroom = false
 let localstream
 let remotestream
 let sharestream
@@ -258,6 +260,7 @@ function disconnect_peer(peerid, user_id)
 // this function into room and send room id
 async function joinRoom(room) 
 {
+    inroom = true
     // get user local camera streams
     // await setLocalStream(mediaconstraints)
     roomid = room
@@ -270,7 +273,9 @@ async function joinRoom(room)
 // this function to leave room 
 function leaveRoom(room,client){
     // stopRecord(room)
-    
+    if(inroom == false)
+        return
+    inroom = true
     socket.emit('leave', {room:room, client:client,userid:userid,username:username,teacher_killed: 0})
     leaveVideoConference({'From':client,'To':'all'})
     alert('监考端退出会议! 如需要重新进入, 请重新connect!');

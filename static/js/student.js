@@ -23,7 +23,13 @@ const iceservers = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
-    { urls: 'stun:stun2.l.google.com:19302' }
+    { urls: 'stun:stun2.l.google.com:19302' },
+    {
+		urls: "turn:8.130.97.48:3478",
+		credential: 'Tony020731',
+		username: 'BlackTony'
+	},
+    {urls: 'stun:8.130.97.48:3478'}
     // ,
     // {
 	// 	url: "turn:8.130.97.48:3478",
@@ -412,6 +418,7 @@ async function joinRoom(room) {
 async function leaveRoom(room,client){
     if(inroom == false)
         return
+    inroom = false
     for(var i = 0; i < 3; i++)
         if(localstreamArray[i] != undefined)
         {

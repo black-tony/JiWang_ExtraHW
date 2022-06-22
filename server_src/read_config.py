@@ -2,7 +2,7 @@
 # import configparser
 from configparser import ConfigParser
 # from click import getchar
-from .MyConstants import DEFAULT_DIR, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_FRAME_RATE, DEFAULT_DISCONNECT, DEFAULT_SSL_CRT, DEFAULT_SSL_KEY
+from .MyConstants import DEFAULT_DIR, DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT, DEFAULT_FRAME_RATE, DEFAULT_DISCONNECT, DEFAULT_SSL_CRT, DEFAULT_SSL_KEY, DEFAULT_LOG_DIR
 
 
 config_info = {}
@@ -15,7 +15,7 @@ config_info['disconnect'] = DEFAULT_DISCONNECT
 config_info['ssl'] = {}
 config_info['ssl']['crt'] = DEFAULT_SSL_CRT
 config_info['ssl']['key'] = DEFAULT_SSL_KEY
-
+config_info['log'] = DEFAULT_LOG_DIR
 
 
 
@@ -37,6 +37,7 @@ def read_from_config_file(filename, encoding='GB18030'):
     config_info['disconnect'] = __config.getint(section='¶ÏÁªÊ±¼ä', option='disconnect', fallback=DEFAULT_DISCONNECT)
     config_info['ssl']['crt'] = __config.get(section='ssl', option='crt', fallback=DEFAULT_SSL_CRT)
     config_info['ssl']['key'] = __config.get(section='ssl', option='key', fallback=DEFAULT_SSL_KEY)
+    config_info['log'] = __config.get(section='log', option='log', fallback=DEFAULT_SSL_KEY)
     
     
 if __name__ == '__main__':

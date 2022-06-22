@@ -53,6 +53,9 @@ RemoveDir(record_dir)
 def debug_output(*message):
     if DEBUG:
         print(message)
+    else:
+        with open(config_info['log'], 'a') as f:
+            f.write(message)
 
 def check_password_strength(password):
     if len(password) < 8 or len(password) > 16:
@@ -133,7 +136,11 @@ def get_new_sid(clientsid : str):
 def website():
     # print("visited!")
     if request.method == 'GET':
-        return render_template("index.html")
+        resp = make_response(render_template("index.html"))
+        resp.delete_cookie('userid')
+        resp.delete_cookie('username')
+        resp.delete_cookie('userlevel')
+        return resp
     else:
         user_id = request.form['ID']
         user_password = request.form['passwd']
@@ -142,12 +149,12 @@ def website():
         user_userlevel = '0'
         #-1: 用户名/密码错误, 0 : 正常, 1 : 需要更改密码 
         with app.app_context():
-            satisfy_user = Student.query.filter_by(stu_no=user_id, stu_password=user_password).first()#
+            satisfy_user = Student.query.filter_by(stu_no=user_id, stu_password=md5(user_password.encode("GB18030")).hexdigest()).first()#
             satisfy_user : Student
             # print(f"passwd = {satisfy_user.stu_password}, hashcode = {calcans}")
             if not satisfy_user:
                 login_status = -1
-            elif user_password == md5(satisfy_user.stu_no.encode("GB18030")).hexdigest():
+            elif user_password == user_id:
                 login_status = 1 
                 user_userlevel = satisfy_user.stu_userlevel
                 user_name = satisfy_user.stu_name
@@ -198,7 +205,7 @@ def change_password():
                 debug_output(userid)
                 satisfy_user = Student.query.filter_by(stu_no=userid).first()
                 satisfy_user : Student
-                satisfy_user.stu_password = passwd1
+                satisfy_user.stu_password = md5(passwd1.encode("GB18030")).hexdigest()
                 db.session.commit()
             return redirect(url_for('website'))
         else :
@@ -207,9 +214,16 @@ def change_password():
 
 @app.route('/student/?<string:user_id>', methods=['GET', 'POST'])
 def student_record(user_id):
-    if 'userid' not in request.cookies or 'username' not in request.cookies:
+    if 'userid' not in request.cookies or 'username' not in request.cookies or 'userlevel' not in request.cookies:
         return redirect('website') 
+    user_id = request.cookies['userid']
+    now_userlevel = request.cookies['userlevel']
     
+    if(now_userlevel == None or now_userlevel != '0'):
+        return "权限错误!"
+    
+    if user_id in userid_to_sid.keys():
+        return "You already in the room!"
     return render_template("./student.html", 
                            userid=user_id, 
                            username=request.cookies['username'], 
@@ -220,8 +234,16 @@ def student_record(user_id):
 
 @app.route('/teacher/?<string:user_id>', methods=['GET', 'POST'])
 def teacher_monitor(user_id):
-    if 'userid' not in request.cookies or 'username' not in request.cookies:
+    if 'userid' not in request.cookies or 'username' not in request.cookies or 'userlevel' not in request.cookies:
         return redirect('website')
+    user_id = request.cookies['userid']
+    now_userlevel = request.cookies['userlevel']
+    
+    if(now_userlevel == None or now_userlevel != '1'):
+        return "权限错误!"
+    
+    if user_id in userid_to_sid.keys():
+        return "You already in the room!"
     satisfy_user = []
     with app.app_context():
         satisfy_user = Student.query.filter_by(stu_userlevel='0', stu_enable='1').all()#
@@ -250,7 +272,7 @@ def tle():
 
 @app.route('/static/js/<path:path>', methods=['GET'])
 def send_js(path):
-    debug_output(f"get this!{path}")
+    # debug_output(f"get this!{path}")
     resp = make_response(send_from_directory('./static/js/', path))
     resp.headers['Content-Type'] = 'application/javascript; charset=gb18030'
     return resp
@@ -431,13 +453,15 @@ def webrtcIceCandidate(event):
 
 @socketio.on('upload_blob')
 def webrtcuploadblob(event):
+    
+    if event['userid'] not in userid_to_sid.keys():
+        return
+    
     if event['mode'] == 0:
         emit('transfer_complete', {'oper':event['oper']})
     else :
         emit("upload_accept")
-    socketio.start_background_task(target=webrtcuploadblob_background, event=event)
     
-def webrtcuploadblob_background(event):
     # global sid_to_userid
     # roomid = event['roomid']
     # clientid = event['clientid']
@@ -561,7 +585,14 @@ def leaveRoom(event):
         how_many_people = len(socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])])
     except:
         how_many_people = 0
-    if how_many_people == 0:
+    ok_to_decode = True
+    for i in sid_to_clientid.keys():
+        if i in teacher_sid:
+            ok_to_decode = False
+            break
+        
+    
+    if how_many_people == 0 or ok_to_decode:
         print("----------------------------------------")
         print("开始视频转码")
 
