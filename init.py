@@ -1,6 +1,5 @@
 # coding=GB18030
 from datetime import datetime
-from distutils.log import debug
 from hashlib import md5
 import shutil
 from socket import socket
@@ -10,15 +9,12 @@ import random
 import os
 import threading
 import sys
-import time
 import flask
-from matplotlib.pyplot import get
 from server_src.read_config import read_from_config_file, config_info
 from flask import make_response, request, render_template, redirect, send_from_directory, session, url_for
 from flask_socketio import SocketIO, emit, disconnect,join_room, leave_room, close_room
 from server_src.MyConstants import DB_URL, DEBUG
 from server_src.DatabaseIO import db, Student
-import jinja2
 app = flask.Flask(__name__)
 app.config['SECRET_KEY'] = "r`9[M-AtuO"
 app.config['SQLALCHEMY_DATABASE_URI'] = DB_URL
@@ -33,10 +29,10 @@ userid_to_sid = {}
 # userid_to_logtime = {}
 teacher_killed = []
 ROOM_NAME = '1'
-if len(sys.argv) > 1:
-    read_from_config_file(sys.argv[1])
-else:
-    read_from_config_file("./webrtc-Tony.conf")
+# if len(sys.argv) > 1:
+    # read_from_config_file(sys.argv[1])
+# else:
+read_from_config_file("/home/TonyYang/ExtraHW/webrtc-Tony.conf")
 record_dir = config_info['root_dir']
     
 def RemoveDir(filepath):
@@ -48,6 +44,8 @@ def RemoveDir(filepath):
 # print(ssl_certificate, ssl_certificate_key)
 
 RemoveDir(record_dir)
+if os.path.isfile(config_info['log']):
+    os.remove(config_info['log'])
 # 功能性函数
 
 def debug_output(*message):
@@ -55,7 +53,7 @@ def debug_output(*message):
         print(message)
     else:
         with open(config_info['log'], 'a') as f:
-            f.write(message)
+            print(message,file=f)
 
 def check_password_strength(password):
     if len(password) < 8 or len(password) > 16:
@@ -280,6 +278,7 @@ def send_js(path):
 # 用于测试
 @app.route('/teststudent', methods=['GET', 'POST'])
 def test_student_record():
+    return "测试已经结束! 您不应该从这里进入!"
     user_id = None
     if 'userid' not in request.cookies:
         global userid_to_sid
@@ -312,6 +311,7 @@ def test_student_record():
 
 @app.route('/testteacher', methods=['GET', 'POST'])
 def test_teacher_monitor():
+    return "测试已经结束! 您不应该从这里进入!"
     global userid_to_sid
     user_id = None
     if 'userid' not in request.cookies:
@@ -587,14 +587,14 @@ def leaveRoom(event):
         how_many_people = 0
     ok_to_decode = True
     for i in sid_to_clientid.keys():
-        if i in teacher_sid:
+        if i not in teacher_sid:
             ok_to_decode = False
             break
         
     
     if how_many_people == 0 or ok_to_decode:
-        print("----------------------------------------")
-        print("开始视频转码")
+        debug_output("----------------------------------------")
+        debug_output("开始视频转码")
 
         record_list = os.listdir(f"{record_dir}")
         for i in record_list:
@@ -606,8 +606,8 @@ def leaveRoom(event):
                 videotargetname = f"{record_dir}/" + a[0] + ".mp4"
                 newthread1 = DecodeThread(videosrcname, videotargetname)
                 newthread1.start()
-        print("视频转码结束")
-        print("----------------------------------------")
+        debug_output("视频转码结束")
+        debug_output("----------------------------------------")
         
 
     

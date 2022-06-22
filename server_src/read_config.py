@@ -37,7 +37,7 @@ def read_from_config_file(filename, encoding='GB18030'):
     config_info['disconnect'] = __config.getint(section='¶ÏÁªÊ±¼ä', option='disconnect', fallback=DEFAULT_DISCONNECT)
     config_info['ssl']['crt'] = __config.get(section='ssl', option='crt', fallback=DEFAULT_SSL_CRT)
     config_info['ssl']['key'] = __config.get(section='ssl', option='key', fallback=DEFAULT_SSL_KEY)
-    config_info['log'] = __config.get(section='log', option='log', fallback=DEFAULT_SSL_KEY)
+    config_info['log'] = __config.get(section='log', option='log', fallback=DEFAULT_LOG_DIR)
     
     
 if __name__ == '__main__':

@@ -2,7 +2,8 @@
 Description = flask python command to do useful stuff
 
 [Service]
-ExecStart = /home/TonyYang/flask_run.sh
+Type=forking
+ExecStart = /home/TonyYang/ExtraHW/flask_run.sh
 
 [Install]
 WantedBy = multi-user.target
