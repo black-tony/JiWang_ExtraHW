@@ -99,7 +99,8 @@ connectbtn.addEventListener('click', async () => {
 
 // click button event binding function
 disconnectbtn.addEventListener('click', () => {
-    leaveRoom('1',clientid)
+    // location.reload()
+    leaveRoom('1', clientid)
 })
 
 
@@ -220,11 +221,12 @@ window.addEventListener("unload", async function(event) {
     await leaveRoom('1', clientid)
 })
 
-
 // -------------------------set socket event -------------------------------
 
 // set client id
 socket.on('connect', () => {
+    // var nowcookie = document.cookie;
+    socket.emit("update_clientid", userid);
     console.log('now client id :',socket.id)
     if (clientid == undefined)
     {
@@ -343,7 +345,25 @@ socket.on('webrtc_ice_candidate', async (event) => {
     rtcpeerconnection[event.peerid].addIceCandidate(candidates)
 })
 
+socket.on("start_record", ()=>{
+    for(var i = 0; i < 3; i++)
+    {
+        if(localstreamArray[i] != undefined && mediarecorderArray[i] == undefined)
+        {
+            startRecord(i, roomid)
+        }
+    }
+})
 
+socket.on("stop_record", ()=>{
+    for(var i = 0; i < 3; i++)
+    {
+        if(localstreamArray[i] != undefined && mediarecorderArray[i] != undefined)
+        {
+            stopRecord(i, roomid)
+        }
+    }
+})
 
 socket.on('leave_room', (event) => {
     removeRemoteStream(event)
@@ -351,14 +371,15 @@ socket.on('leave_room', (event) => {
 })
 
 
+
 socket.on('transfer_complete', async (event) => {
     // mode = 0
     oper = event.oper
-    localstreamArray[oper] = undefined;
     chunksArray[oper] = []
-    videocomponentArray[oper].srcObject = undefined
     datestringArray[oper] = undefined
     mediarecorderArray[oper] = undefined
+    // localstreamArray[oper] = undefined;
+    // videocomponentArray[oper].srcObject = undefined
     console.log('transfer record complete!');
 })
 
@@ -521,6 +542,53 @@ function getCurrentDate()
 }
 
 //TOTAL start----------------------------------------
+
+
+function startRecord(oper, room)
+{
+    if(mediarecorderArray[oper] != undefined)
+        return false;
+    mediarecorderArray[oper] = new MediaRecorder(localstreamArray[oper])
+    mediarecorderArray[oper].mimeType = 'video/webm; codecs=h264';
+    mediarecorderArray[oper].start(3 * 1000);
+    chunksArray[oper] = []
+    datestringArray[oper] = getCurrentDate()
+    // event function
+    mediarecorderArray[oper].ondataavailable = function(e) {
+        chunksArray[oper].push(e.data);
+        socket.emit('upload_blob',{data:chunksArray[oper].shift(),roomid:room,clientid:clientid,mode:1,userid:userid,username:username,oper:oper, date:datestringArray[oper]});
+        console.log('upload record !!');
+    }
+}
+async function stopRecord(oper, room)
+{
+    if(mediarecorderArray[oper] == undefined)
+        return false;
+
+    mediarecorderArray[oper].stop()
+    // await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop',userid:userid,username:username})
+    console.log("recorder stopped");
+    var atlast = chunksArray[oper].length
+    console.log("there are",atlast,"data need upload")
+    if(atlast != 0)
+    {
+        for (let i = 0; i < atlast; i++) {
+            if(i == atlast-1)
+            {
+                await socket.emit('upload_blob',{data:chunksArray[oper][i],roomid:room,clientid:clientid,mode:0,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
+            }
+            else
+            {
+                await socket.emit('upload_blob',{data:chunksArray[oper][i],roomid:room,clientid:clientid,mode:1,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
+            }
+        }
+    }
+    else
+    {
+        await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
+    }
+    return true
+}
 async function startShareStream(mediaconstraints, oper, room){
     if(localstreamArray[oper] != undefined)
         return false;
@@ -548,17 +616,18 @@ async function startShareStream(mediaconstraints, oper, room){
         console.error('Could not get user device!', error)
         return false
     }
-    mediarecorderArray[oper] = new MediaRecorder(localstreamArray[oper])
-    mediarecorderArray[oper].mimeType = 'video/webm; codecs=h264';
-    mediarecorderArray[oper].start(3 * 1000);
-    chunksArray[oper] = []
-    datestringArray[oper] = getCurrentDate()
-    // event function
-    mediarecorderArray[oper].ondataavailable = function(e) {
-        chunksArray[oper].push(e.data);
-        socket.emit('upload_blob',{data:chunksArray[oper].shift(),roomid:room,clientid:clientid,mode:1,userid:userid,username:username,oper:oper, date:datestringArray[oper]});
-        console.log('upload record !!');
-    }
+    // mediarecorderArray[oper] = new MediaRecorder(localstreamArray[oper])
+    // mediarecorderArray[oper].mimeType = 'video/webm; codecs=h264';
+    // mediarecorderArray[oper].start(3 * 1000);
+    // chunksArray[oper] = []
+    // datestringArray[oper] = getCurrentDate()
+    // // event function
+    // mediarecorderArray[oper].ondataavailable = function(e) {
+    //     chunksArray[oper].push(e.data);
+    //     socket.emit('upload_blob',{data:chunksArray[oper].shift(),roomid:room,clientid:clientid,mode:1,userid:userid,username:username,oper:oper, date:datestringArray[oper]});
+    //     console.log('upload record !!');
+    // }
+    startRecord(oper, room)
     return true
 }
 
@@ -567,29 +636,29 @@ async function startShareStream(mediaconstraints, oper, room){
 async function stopShareStream(oper, room){
     if(localstreamArray[oper] == undefined)
         return;
-
-    mediarecorderArray[oper].stop()
-    // await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop',userid:userid,username:username})
-    console.log("recorder stopped");
-    var atlast = chunksArray[oper].length
-    console.log("there are",atlast,"data need upload")
-    if(atlast != 0)
-    {
-        for (let i = 0; i < atlast; i++) {
-            if(i == atlast-1)
-            {
-                await socket.emit('upload_blob',{data:chunksArray[oper][i],roomid:room,clientid:clientid,mode:0,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
-            }
-            else
-            {
-                await socket.emit('upload_blob',{data:chunksArray[oper][i],roomid:room,clientid:clientid,mode:1,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
-            }
-        }
-    }
-    else
-    {
-        await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
-    }
+    await stopRecord(oper,room)
+    // mediarecorderArray[oper].stop()
+    // // await socket.emit('record_time',{roomid:room,clientid:clientid,mode:'stop',userid:userid,username:username})
+    // console.log("recorder stopped");
+    // var atlast = chunksArray[oper].length
+    // console.log("there are",atlast,"data need upload")
+    // if(atlast != 0)
+    // {
+    //     for (let i = 0; i < atlast; i++) {
+    //         if(i == atlast-1)
+    //         {
+    //             await socket.emit('upload_blob',{data:chunksArray[oper][i],roomid:room,clientid:clientid,mode:0,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
+    //         }
+    //         else
+    //         {
+    //             await socket.emit('upload_blob',{data:chunksArray[oper][i],roomid:room,clientid:clientid,mode:1,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
+    //         }
+    //     }
+    // }
+    // else
+    // {
+    //     await socket.emit('upload_blob',{data:[0],roomid:room,clientid:clientid,mode:0,userid:userid,username:username,oper:oper, date:datestringArray[oper]})
+    // }
     trclen = Object.keys(rtcpeerconnection).length
     
     if(trclen != 0)
@@ -625,7 +694,9 @@ async function stopShareStream(oper, room){
         // if(sender.track.id == screentrack.id)
             screentrack.stop();
     })
-    
+
+    localstreamArray[oper] = undefined;
+    videocomponentArray[oper].srcObject = undefined
 }
 
 
@@ -641,8 +712,7 @@ async function stopShareStream(oper, room){
 function showVideoConference() {
     roomselectioncontainer.style = 'display: none'
     videochatcontainer.style = 'display: block'
-    disconnectbtn.disabled = false;
-    disconnectbtn.innerHTML = '断开连接';
+    
     openBtn()
 }
 
@@ -682,7 +752,7 @@ function leaveVideoConference(event) {
     senders = [];
     // reset variable
     isconnectcreator = undefined
-    mediaconstraints = undefined
+    // mediaconstraints = undefined
     // localstream,remotestream,isconnectcreator,mediaconstraints,isconnectcreator,roomid = undefined,undefined,undefined,undefined,undefined,undefined
     c = 0
     return true
@@ -690,15 +760,15 @@ function leaveVideoConference(event) {
 
 
 function removeRemoteStream(event) {
-    var d = document.getElementById(event['From']+':'+event['To']) || document.getElementById(event['To']+':'+event['From'])
-    try
-    {
-        d.remove()
-    }
-    catch(error)
-    {
-        console.log(d)
-    }
+    // var d = document.getElementById(event['From']+':'+event['To']) || document.getElementById(event['To']+':'+event['From'])
+    // try
+    // {
+    //     d.remove()
+    // }
+    // catch(error)
+    // {
+    //     console.log(d)
+    // }
     if(rtcpeerconnection[event['From']+':'+event['To']])
     {
         rtcpeerconnection[event['From']+':'+event['To']].close();
@@ -789,6 +859,8 @@ async function sendIceCandidate2offer(event) {
 
 // open button
 function openBtn(){
+    disconnectbtn.disabled = false;
+    disconnectbtn.innerHTML = '断开连接';
     sharecamera.disabled = false;
     sharecamera.innerHTML = '开始录制镜头';
     sharescreen.disabled = false;
@@ -807,12 +879,12 @@ function closeBtn(){
     sharescreen.innerHTML = '开始录制屏幕'
     sharevideo.disabled = true;
     sharevideo.innerHTML = '开始录制视频+音频'
-    var bt = document.getElementsByClassName('remote-video');
-    slen = Object.keys(bt).length
-    for (i = 0; i < slen-1; i++) 
-  for (i = 0; i < slen-1; i++) 
-    for (i = 0; i < slen-1; i++) 
-    {
-        bt[1].remove()
-    }
+//     var bt = document.getElementsByClassName('remote-video');
+//     slen = Object.keys(bt).length
+//     for (i = 0; i < slen-1; i++) 
+//   for (i = 0; i < slen-1; i++) 
+//     for (i = 0; i < slen-1; i++) 
+//     {
+//         bt[1].remove()
+//     }
 };

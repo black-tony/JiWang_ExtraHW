@@ -3,8 +3,11 @@ const roomselectioncontainer = document.getElementById('room-selection-container
 const roominput = document.getElementById('room-input')
 const connectbtn = document.getElementById('connect-button')
 const disconnectbtn = document.getElementById('disconnect-button')
-const sharescreen = document.getElementById('share-screen')
-const hidelocalbox = document.getElementById('hide-localbox')
+const startrecordbtn = document.getElementById('start-record')
+const stoprecordbtn = document.getElementById('stop-record')
+// const sharescreen = document.getElementById('share-screen')
+// const hidelocalbox = document.getElementById('hide-localbox')
+// const stoprecordbtn = document.getElementById("stop-record")
 const videochatcontainer = document.getElementById('video-chat-container')
 const localvideocomponent = document.getElementById('local-video')
 const remotevideocomponent = document.getElementById('video-chat-container')
@@ -62,10 +65,42 @@ let lastconnect
 
 // -------------------------set element event binding-------------------------------
 
+startrecordbtn.addEventListener('click', () => {
+    socket.emit("start_record")
+})
+stoprecordbtn.addEventListener('click', async () => {
+    socket.emit("stop_record")
+})
+
+disconnectbtn.addEventListener('click', ()=>{
+    leaveRoom('1', clientid)
+    // location.reload()
+})
+connectbtn.addEventListener('click', async () => {
+    mode = 3
+    connectbtn.disabled = true
+    // mediaconstraints = {
+    //     audio: {
+    //         echoCancellation: true,
+    //         noiseSuppression: true,
+    //         sampleRate: 44100
+    //     },
+    //     video: {
+    //         width: { ideal: framewidth, max: 1920 },
+    //         height: { ideal: frameheight, max: 1080 },
+    //         frameRate: {ideal: frameragte, max: 15}
+    //     }
+    // }
+    joinRoom('1');
+})
+
+
+
+
 window.onload = function()
 {
-    mode = 3;
-    joinRoom('1');
+    // mode = 3;
+    // joinRoom('1');
 }
 // close window or reload page will disconnect room
 window.addEventListener("unload", function(event) {
@@ -80,6 +115,7 @@ window.addEventListener("beforeunload", function(event) {
 
 // set client id
 socket.on('connect', () => {
+    socket.emit("update_clientid", userid);
     console.log('now client id :',socket.id)
     if (clientid == undefined)
     {
@@ -237,7 +273,7 @@ function leaveRoom(room,client){
     
     socket.emit('leave', {room:room, client:client,userid:userid,username:username,teacher_killed: 0})
     leaveVideoConference({'From':client,'To':'all'})
-    alert('video coference closed, if you need new coversation, plz enter new room number');
+    alert('监考端退出会议! 如需要重新进入, 请重新connect!');
         // alert('WARNING :plz wait for the transfer to complete before closing this page!!');
 }
 
@@ -246,47 +282,49 @@ function leaveRoom(room,client){
 function showVideoConference() {
     roomselectioncontainer.style = 'display: none'
     videochatcontainer.style = 'display: block'
-    disconnectbtn.disabled = false;
-    disconnectbtn.innerHTML = 'leave Room';
+
+    openBtn();
+
 }
 
 
 // leave video conference
 function leaveVideoConference(event) {
   // hide video div and show choose page
-  roomselectioncontainer.style = 'display: block'
-  videochatcontainer.style = 'display: none'
+    roomselectioncontainer.style = 'display: block'
+    videochatcontainer.style = 'display: none'
+
   // if share screem not stop ,clear variable and stop it.
 //   if(sharestream != undefined){
 //     stopShareScreen()
 //   }
   // stop localstream 
-  trclen = Object.keys(rtcpeerconnection).length
-  if(trclen != 0)
-  {
-        for (var i = 0; i < trclen; i++) {
-            rtcpeerconnection[Object.keys(rtcpeerconnection)[0]].getSenders().forEach(function(sender) {
-                sender.track.stop();
-            });
-            rtcpeerconnection[Object.keys(rtcpeerconnection)[0]].close();
-        }
-  }
-  // stop track
-  a = localstream.getTracks().length
-  if(localstream.getTracks().length != 0)
-  {
-        for(i=0;i<a;i++)
-        {
-            localstream.getTracks()[0].stop()
-        }
-  }
+    trclen = Object.keys(rtcpeerconnection).length
+    if(trclen != 0)
+    {
+            for (var i = 0; i < trclen; i++) {
+                rtcpeerconnection[Object.keys(rtcpeerconnection)[0]].getSenders().forEach(function(sender) {
+                    sender.track.stop();
+                });
+                rtcpeerconnection[Object.keys(rtcpeerconnection)[0]].close();
+            }
+    }
+//   // stop track
+//   a = localstream.getTracks().length
+//   if(localstream.getTracks().length != 0)
+//   {
+//         for(i=0;i<a;i++)
+//         {
+//             localstream.getTracks()[0].stop()
+//         }
+//   }
   // close button
   closeBtn()
   // reset const
   senders = [];
   // reset variable
-  localstream,remotestream,isconnectcreator,mediaconstraints,isconnectcreator,roomid = undefined,undefined,undefined,undefined,undefined,undefined
-  c = 0
+//   localstream,remotestream,isconnectcreator,mediaconstraints,isconnectcreator,roomid = undefined,undefined,undefined,undefined,undefined,undefined
+//   c = 0
 }
 
 
@@ -307,6 +345,11 @@ function removeRemoteStream(event) {
     // {
     //     console.log(d2)
     // }
+    if(disconnect_detector[event['userid']] != undefined)
+    {
+        clearTimeout(disconnect_detector[event['userid']])
+        delete disconnect_detector[event['userid']]
+    }
     var d3 = document.getElementById(event['userid'] + "_monitor")
     if(d3 == null)
         return
@@ -485,24 +528,33 @@ async function sendIceCandidate2answer(event) {
 
 // open button
 function openBtn(){
-    sharescreen.disabled = false;
-    hidelocalbox.disabled = false
+    startrecordbtn.disabled = false
+    stoprecordbtn.disabled = false
+    disconnectbtn.disabled = false;
+    disconnectbtn.innerHTML = '断开连接';
+    // sharescreen.disabled = false;
+    // hidelocalbox.disabled = false
 }
 
 
 // close button
 function closeBtn(){
-    sharescreen.disabled = true;
-    sharescreen.value = "0"
-    sharescreen.innerHTML = "share screen"
-    hidelocalbox.disabled = true
-    hidelocalbox.value = "0"
-    hidelocalbox.innerHTML = "hide localbox"
+    startrecordbtn.disabled = true
+    stoprecordbtn.disabled = true
     disconnectbtn.disabled = true;
-    disconnectbtn.innerHTML = 'wait for connect....';
+    connectbtn.disabled = false;
+    disconnectbtn.innerHTML = '你不应该看到这个按钮!';
+    // sharescreen.disabled = true;
+    // sharescreen.value = "0"
+    // sharescreen.innerHTML = "share screen"
+    // hidelocalbox.disabled = true
+    // hidelocalbox.value = "0"
+    // hidelocalbox.innerHTML = "hide localbox"
+    // disconnectbtn.disabled = true;
+    // disconnectbtn.innerHTML = 'wait for connect....';
     var bt = document.getElementsByClassName('remote-video');
-    slen = Object.keys(bt).length
-    for (i = 0; i < slen-1; i++) {
-        bt[1].remove()
-    }
+    // slen = Object.keys(bt).length
+    // for (i = 0; i < slen-1; i++) {
+    //     bt[1].remove()
+    // }
 };

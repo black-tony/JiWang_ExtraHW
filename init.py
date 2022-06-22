@@ -258,10 +258,26 @@ def send_js(path):
 # 用于测试
 @app.route('/teststudent', methods=['GET', 'POST'])
 def test_student_record():
-    global userid_to_sid
-    user_id = random.randint(1000000, 9999999)
-    while str(user_id) in userid_to_sid:
+    user_id = None
+    if 'userid' not in request.cookies:
+        global userid_to_sid
         user_id = random.randint(1000000, 9999999)
+        while str(user_id) in userid_to_sid.keys():
+            user_id = random.randint(1000000, 9999999)
+    else :
+        user_id = request.cookies['userid']
+    now_userlevel = None
+    if 'userlevel' not in request.cookies:
+        now_userlevel = '0'
+    else :
+        now_userlevel = request.cookies['userlevel']
+    
+    if(now_userlevel == None or now_userlevel != '0'):
+        return "权限错误!"
+    
+    if user_id in userid_to_sid.keys():
+        return "You already in the room!"
+
     resp = make_response(render_template("./student.html",
                                             userid=user_id, 
                                             username="NULL", 
@@ -275,10 +291,26 @@ def test_student_record():
 @app.route('/testteacher', methods=['GET', 'POST'])
 def test_teacher_monitor():
     global userid_to_sid
-    user_id = random.randint(1000000, 9999999)
-    while str(user_id) in userid_to_sid:
+    user_id = None
+    if 'userid' not in request.cookies:
+        global userid_to_sid
         user_id = random.randint(1000000, 9999999)
-    # userid_to_sid[str(user_id)] = request.sid
+        while str(user_id) in userid_to_sid.keys():
+            user_id = random.randint(1000000, 9999999)
+    else :
+        user_id = request.cookies['userid']
+    now_userlevel = None
+    if 'userlevel' not in request.cookies:
+        now_userlevel = '1'
+    else :
+        now_userlevel = request.cookies['userlevel']
+    
+    if(now_userlevel == None or now_userlevel != '1'):
+        return redirect(url_for("website"))
+    
+    if user_id in userid_to_sid.keys():
+        return "You already in the room!"
+    
     satisfy_user = []
     with app.app_context():
         satisfy_user = Student.query.filter_by(stu_userlevel='0', stu_enable='1').all()#
@@ -313,7 +345,7 @@ def creatOrJoin(roomid, userLevel, userid, username):
     join_room(room=roomid)
     
     
-    if userid in userid_to_sid:
+    if request.sid in userid_to_sid.values():
         debug_output("impossible event! join with a previous sid!")
         return
     userid_to_sid[userid] = request.sid
@@ -486,12 +518,16 @@ def leaveRoom(event):
     # assert(event['client'] == clientid)
     
     try:
-        del sid_to_clientid[now_sid]
-        del userid_to_sid[userid]
+        # del sid_to_clientid[now_sid]
+        sid_to_clientid.pop(now_sid)
+        userid_to_sid.pop(userid)
+        # del userid_to_sid[userid]
         # del userid_to_logtime[userid]
     except:
         pass
     
+    debug_output(sid_to_clientid)
+    debug_output(userid_to_sid)
     debug_output(f"receive leave event, clientid = {clientid}, userid = {userid}")
     try :
         if now_sid not in socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])]:
@@ -509,6 +545,9 @@ def leaveRoom(event):
         teacher_sid.remove(clientid)
         if len(teacher_sid) == 0:
             room_with_teacher = False
+        for i in userid_to_sid.values():
+            if sid_to_clientid[i] not in teacher_sid:
+                emit('leave_room', {'From': clientid, 'To': i, 'userid': userid, 'username' : event['username']}, room=get_new_sid(i))
         # for i in socketio.sockio_mw.engineio_app.manager.rooms['/'][str(event['room'])]:
             # if i != event['client']:
                 
@@ -556,45 +595,26 @@ def disconnect_event():
     
 @socketio.on("connect")
 def connect_event():
-    
+    pass
     # print(session.get("test"))
     # session['test'] = request.sid
     # print(request.sid)
     # disconnect(request.sid)
     # 检查是否存在, 要设置双向内容
     # 检查是否被老师断开
-    if teacher_killed.count(request.cookies['userid']) != 0:
-        teacher_killed.remove(request.cookies['userid'])
-        emit("get_killed", room=request.sid)
-        return
-        
-        
-    
-    global sid_to_clientid
-    global userid_to_sid
-    debug_output("connect event!")
-    session
-    userid = request.cookies['userid'] 
-    now_sid = request.sid
-    debug_output(f"connect event from {now_sid}")
-    if userid in userid_to_sid:
-        leave_room(ROOM_NAME, sid=userid_to_sid[userid])
-        debug_output(f'history_sid = {userid_to_sid[userid]}, nowsid = {now_sid}')
-        old_sid = userid_to_sid[userid]
-
-        clientid = sid_to_clientid[old_sid]
-        
-        del sid_to_clientid[old_sid]
-        
-        sid_to_clientid[now_sid] = clientid
-        userid_to_sid[userid] = now_sid
-        
-        join_room(ROOM_NAME, sid = now_sid)
-        
     
     # sid_to_userid[sid] = request.cookies['userid']
     
+@socketio.on("start_record")
+def start_record_order():
+    emit("start_record", room=ROOM_NAME)
+            
+            
     
+    
+@socketio.on("stop_record")
+def stop_record_order():
+    emit("stop_record", room=ROOM_NAME)
 
 @socketio.on("detect_disconnect")
 def detect_disconnect(sid, userid):
@@ -625,7 +645,38 @@ def delete_tracks(event):
     emit('track_delete', event, room=get_new_sid(event['To']))
     
 
+@socketio.on("update_clientid")
+def update_clientid(userid):
+    if teacher_killed.count(userid) != 0:
+        teacher_killed.remove(userid)
+        emit("get_killed", room=request.sid)
+        return
+        
+        
+    
+    global sid_to_clientid
+    global userid_to_sid
+    debug_output("connect event!")
+    # session
+    # userid = request.cookies['userid'] 
+    now_sid = request.sid
+    debug_output(f"connect event from {now_sid}")
+    if userid in userid_to_sid.keys():
+        leave_room(ROOM_NAME, sid=userid_to_sid[userid])
+        debug_output(f'history_sid = {userid_to_sid[userid]}, nowsid = {now_sid}')
+        old_sid = userid_to_sid[userid]
 
+        clientid = sid_to_clientid[old_sid]
+        
+        sid_to_clientid.pop(old_sid)
+        # del sid_to_clientid[]
+        
+        sid_to_clientid[now_sid] = clientid
+        userid_to_sid[userid] = now_sid
+        
+        join_room(ROOM_NAME, sid = now_sid)
+        
+    
 
 
 

@@ -56,30 +56,29 @@
 </head>
 
 <body>
-  <div id="room-selection-container" class="centered" style="display: none">
-    <h1>WebRTC video conference(multiple)</h1>
-    <br>
-    MODE<br>
-    <input type="radio" value="1" name="location">only sound<br>
-    <input type="radio" value="2" name="location">only video<br>
-    <input type="radio" value="3" name="location">both<br>
-    <br>
-    <label>Enter the number of the room you want to connect</label>
-    <input id="room-input" type="text" />
-    <br>
+  <div id="room-selection-container" class="centered" style="display: block">
+    <h1>WebRTC video conference</h1>
+    <h2>老师{{username}},您好!<br> 请点击下方按钮开始共享视频与屏幕!</h2>
     <button id="connect-button">CONNECT</button>
-    <br><br>
   </div>
+  <!-- <div id="room-selection-container" class="centered" style="display: block"> -->
+    
+    <!-- <button id="connect-button">CONNECT</button> -->
+    <!-- <br><br> -->
+  <!-- </div> -->
   <div id = "userid" style="display: none">{{userid}}</div>
   <div id = "username" style="display: none">{{username}}</div>
   <div id = "disconnect-time" style="display: none">{{disconnect_time}}</div>
-  <div id="video-chat-container" class="video-position" style="display: block">
+  <div id="video-chat-container" class="video-position" style="display: none">
     <!-- <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video> -->
     <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
     <div id="buttondiv">
-      <button id="share-screen" value="0" disabled>share screen</button>
-      <button id="hide-localbox" value="0" disabled>hide localbox</button>
-      <button id="disconnect-button" disabled>wait for connect....</button>
+      <!-- <button id="share-screen" value="0" disabled style="display: none">share screen</button> -->
+      <!-- <button id="hide-localbox" value="0" disabled>hide localbox</button> -->
+      <button id="disconnect-button" disabled>开始连接</button>
+      <button id="start-record" disabled>开始服务器记录</button>
+      <button id="stop-record" disabled>停止服务器记录</button>
+      
     </div>
     <br>
     <br>
