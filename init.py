@@ -43,9 +43,10 @@ def RemoveDir(filepath):
         os.mkdir(filepath)
 # print(ssl_certificate, ssl_certificate_key)
 
-RemoveDir(record_dir)
+# RemoveDir(record_dir)
 if os.path.isfile(config_info['log']):
-    os.remove(config_info['log'])
+    with open(config_info['log'], 'a') as f:
+        print("------------------------重启之后的新纪录----------------", file=f)    
 # 功能性函数
 
 def debug_output(*message):
@@ -107,7 +108,12 @@ class DecodeThread (threading.Thread):
         self.fout = fout
     def run(self):
         decode_record(self.fin, self.fout)
-        os.remove(self.fin)
+        a = self.fin.split('.')
+        if len(a) <= 2:
+            return
+        if a[2] == 'ready' and a[1] == 'webm':
+            os.rename(self.fin, a[0] + "." + a[1])
+        
         debug_output(f"{self.fin} decode finish!")
         # print_time(self.name, self.delay, 5)
         # print ("退出线程：" + self.name)
@@ -477,7 +483,7 @@ def webrtcuploadblob(event):
     #     __output("How to get here?")
         
         
-    with open('{}/u{}-{}-{}-{}.webm'.format(record_dir, event['userid'], event['username'], recordType, datestring), 'ab') as f:
+    with open('{}/u{}-{}-{}-{}.webm.ready'.format(record_dir, event['userid'], event['username'], recordType, datestring), 'ab') as f:
         if event['data'] != [0]:
             f.write(event['data'])
 
@@ -599,15 +605,15 @@ def leaveRoom(event):
         record_list = os.listdir(f"{record_dir}")
         for i in record_list:
             a = i.split('.')
-            if len(a) < 2:
+            if len(a) <= 2:
                 continue
-            if a[1] == 'webm':
+            if a[2] == 'ready' and a[1] == 'webm':
                 videosrcname = f"{record_dir}/" + i
                 videotargetname = f"{record_dir}/" + a[0] + ".mp4"
                 newthread1 = DecodeThread(videosrcname, videotargetname)
                 newthread1.start()
-        debug_output("视频转码结束")
-        debug_output("----------------------------------------")
+        # debug_output("视频转码结束")
+        # debug_output("----------------------------------------")
         
 
     
