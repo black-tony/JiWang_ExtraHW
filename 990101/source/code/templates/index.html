@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="GB18030">
+<title>文档标题</title>
+</head>
+ 
+<body>
+    <br><br><br><br><br><br>
+    <center><h2>登录界面</h2></center>
+    <br><br><br><br><br><br>
+    <center>
+    <form name="login" action="/" method="post">
+        学号: <input type="text" name="ID" value="{{user_id}}"> <br>
+        密码: <input type="password" name="passwd"> <br>
+        <input type="submit" value="登录">
+    </form>
+    </center>
+    <br>
+
+    <a href='{{url_for("test_student_record")}}' style="display: none">测试学生</a>
+    <br>
+    <a href='{{url_for("test_teacher_monitor")}}' style="display: none">测试老师</a>
+    <br>
+    <a href="./YangTest/"  style="display: none">跳转测试</a>
+
+</body>
+<script type="text/javascript">
+    var ans = {{test_result}}
+    if (ans == 1)
+        alert("请先登录!")
+    else if (ans == 2)
+        alert("用户权限错误!")
+
+</script>
+</html>

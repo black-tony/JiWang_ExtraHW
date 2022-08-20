@@ -1,0 +1,17 @@
+# coding=GB18030
+DEBUG = 0
+DEFAULT_DIR = "/home/webrtc_Tony/record/"
+DEFAULT_FRAME_WIDTH = 1920
+DEFAULT_FRAME_HEIGHT = 1080
+DEFAULT_FRAME_RATE = 15
+DEFAULT_DISCONNECT = 15
+DEFAULT_SSL_CRT = "/etc/webrtc_Tony/cert.crt"
+DEFAULT_SSL_KEY = "/etc/webrtc_Tony/cert.key"
+DEFAULT_LOG_DIR = "/var/log/webrtc_Tony/server.log"
+DB_PASSWD = 'root123'
+DB_HOST = "localhost"
+DB_USER = "root"
+DB_PORT = 3306
+DB_DATABASE = "user"
+TURNSERVER_IP = "8.130.97.48"
+TURNSERVER_PORT = "3478"

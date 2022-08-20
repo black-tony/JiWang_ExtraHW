@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="GB18030" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebRTC</title>
+
+  <style type="text/css">
+    body {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .centered {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100%; text-align: center;
+    }
+
+    .video-position {
+      position: absolute;
+      top: 5%;
+      left: 5%;
+      text-align: center;
+    }
+    
+    #video-chat-container {
+      /*width: 50%;*/
+      /*align-content: center;*/
+      /* position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center; */
+      background-color: none;
+    }
+
+   /* #local-video {
+      margin:auto
+    } */
+    
+    #cam_table{
+      width: fit-content;
+    }
+
+    .remote-video {
+      width: 80%;
+      height: auto;
+      background-color: aqua;
+    }
+
+    .buttondiv {
+      position: absolute;
+      text-align: center;
+    }
+
+    #testarea {
+      margin-top: 80%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="room-selection-container" class="centered" style="display: block">
+    <h1>WebRTC video conference</h1>
+    <h2>你好, {{username}}, 请点击下方按钮开始共享视频与屏幕!</h2>
+    <button id="connect-button">CONNECT</button>
+    <!-- <br><br> -->
+  </div>
+
+  <!-- <center> -->
+  <div id="video-chat-container" class="video-position" style="display: none">
+    <div id = "userid" >{{userid}}</div>
+    <div id = "username">{{username}}</div>
+    <div id = "framerate" style="display: none">{{framerate}}</div>
+    <div id = "frameheight" style="display: none">{{frameheight}}</div>
+    <div id = "framewidth" style="display: none">{{framewidth}}</div>
+    <div id = "turnserver_ip" style="display: none">{{turnserver_ip}}</div>
+    <div id = "turnserver_port" style="display: none">{{turnserver_port}}</div>
+    <div id="buttondiv">
+      <button id="share-camera" value="0" disabled>开始录制镜头</button>
+      <button id="share-screen" value="0" disabled>开始录制屏幕</button>
+      <button id="share-video" value="0" disabled>开始录制视频+音频</button>
+      <button id="disconnect-button" disabled>断开连接</button>
+    </div>
+    <br>
+    <br>
+    <table id="cam_table">
+      <tr>
+        <th>录制镜头</th>
+        <th>屏幕共享</th>
+      </tr>
+      <tr>
+        <td>
+          <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video>
+        </td>
+        <td>
+          <video id="local-screen" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video>
+        </td>
+      </tr>
+    <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
+    </table>
+  </div>
+<!-- </center> -->
+  <!-- this is for Flask -->
+  <script src="../static/js/socket.io.js"></script>
+  <script src="../static/js/student.js" charset="GB18030"></script>
+
+</body>
+
+</html>

@@ -8,9 +8,8 @@ DEFAULT_DISCONNECT = 15
 DEFAULT_SSL_CRT = "/etc/pki/tls/certs/cert.crt"
 DEFAULT_SSL_KEY = "/etc/pki/tls/private/cert.key"
 DEFAULT_LOG_DIR = "./server.log"
-DB_PASSWD = 'A6080o--a__TtVFR'
+DB_PASSWD = 'root123'
 DB_HOST = "localhost"
 DB_USER = "root"
 DB_PORT = 3306
 DB_DATABASE = "user"
-DB_URL = "mariadb://{username}:{password}@{host}:{port}/{db}?charset=gbk".format(username=DB_USER, password=DB_PASSWD, host=DB_HOST, port=DB_PORT, db=DB_DATABASE)

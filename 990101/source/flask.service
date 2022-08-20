@@ -1,0 +1,9 @@
+[Unit]
+Description = webrtc by flask
+
+[Service]
+Type=forking
+ExecStart = /usr/bin/webrtc_Tony/flask_run.sh
+
+[Install]
+WantedBy = multi-user.target

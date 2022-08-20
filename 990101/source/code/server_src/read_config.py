@@ -20,6 +20,9 @@ config_info['database']['password'] = DB_PASSWD
 config_info['database']['host'] = DB_HOST
 config_info['database']['port'] = DB_PORT
 config_info['database']['user'] = DB_USER
+config_info['turnserver'] = {}
+config_info['turnserver']['ip'] = TURNSERVER_IP
+config_info['turnserver']['port'] = TURNSERVER_PORT
 
 
 __config = ConfigParser(comment_prefixes=(';', '#'), inline_comment_prefixes=(';', '#'), delimiters=('='), empty_lines_in_values=False)
@@ -45,6 +48,8 @@ def read_from_config_file(filename, encoding='GB18030'):
     config_info['database']['host'] = __config.get(section='database', option='host', fallback=DB_HOST)
     config_info['database']['port'] = __config.get(section='database', option='port', fallback=DB_PORT)
     config_info['database']['user'] = __config.get(section='database', option='user', fallback=DB_USER)
+    config_info['turnserver']['ip'] = __config.get(section='turnserver', option='ip', fallback=TURNSERVER_IP)
+    config_info['turnserver']['port'] = __config.get(section='turnserver', option='port', fallback=TURNSERVER_PORT)
     
 if __name__ == '__main__':
     read_from_config_file('../webrtc-Tony.conf')

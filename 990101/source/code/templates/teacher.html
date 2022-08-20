@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="GB18030" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebRTC</title>
+
+  <style type="text/css">
+    body {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .centered {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .video-position {
+      position: absolute;
+      top: 5%;
+      left: 5%;
+      margin: center;
+    }
+
+    #video-chat-container {
+      /*width: 100%;*/
+      background-color: none;
+    }
+
+    /* #local-video {
+      position: absolute;
+      height: 30%;
+      width: 30%;
+      bottom: 0px;
+      left: 0px;
+    } */
+
+    .remote-video {
+      width: 40%;
+      height: 40%;
+      background-color: aqua;
+    }
+
+    #buttondiv {
+      position: absolute;
+    }
+
+    #testarea {
+      margin-top: 80%;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="room-selection-container" class="centered" style="display: block">
+    <h1>WebRTC video conference</h1>
+    <h2>老师{{username}},您好!<br> 请点击下方按钮开始共享视频与屏幕!</h2>
+    <button id="connect-button">CONNECT</button>
+  </div>
+  <!-- <div id="room-selection-container" class="centered" style="display: block"> -->
+    
+    <!-- <button id="connect-button">CONNECT</button> -->
+    <!-- <br><br> -->
+  <!-- </div> -->
+  <div id = "userid" style="display: none">{{userid}}</div>
+  <div id = "username" style="display: none">{{username}}</div>
+  <div id = "disconnect-time" style="display: none">{{disconnect_time}}</div>
+  <div id = "turnserver_ip" style="display: none">{{turnserver_ip}}</div>
+  <div id = "turnserver_port" style="display: none">{{turnserver_port}}</div>
+  <div id="video-chat-container" class="video-position" style="display: none">
+    <!-- <video id="local-video" class="remote-video" muted="muted" autoplay="autoplay" playsInline="playsInline"></video> -->
+    <!-- <video class="remote-video" autoplay="autoplay" playsInline="playsInline"></video> -->
+    <div id="buttondiv">
+      <!-- <button id="share-screen" value="0" disabled style="display: none">share screen</button> -->
+      <!-- <button id="hide-localbox" value="0" disabled>hide localbox</button> -->
+      <button id="disconnect-button" disabled>开始连接</button>
+      <button id="start-record" disabled>开始服务器记录</button>
+      <button id="stop-record" disabled>停止服务器记录</button>
+      
+    </div>
+    <br>
+    <br>
+    <br>
+    {% for i in satisfy_user %}
+        <div id = {{i.stu_no}}>
+          <div id = {{i.stu_no ~ "_monitor"}}> {{i.stu_no ~ " " ~ i.stu_name ~ " 未连接"}}</div>
+          <video class="remote-video" id={{i.stu_no ~ "_1"}} autoplay="autoplay" playsinline="playsInline"></video>
+          <video class="remote-video" id={{i.stu_no ~ "_2"}} autoplay="autoplay" playsinline="playsInline"></video>
+        </div>
+    {% endfor %}
+  </div>
+  <!-- this is for Flask -->
+  <script src="../static/js/socket.io.js"></script>
+  <script src="../static/js/teacher.js" charset="GB18030"></script>
+
+</body>
+
+</html>

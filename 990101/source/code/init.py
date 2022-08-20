@@ -237,7 +237,9 @@ def student_record(user_id):
                            username=request.cookies['username'], 
                            framerate=config_info['frame']['rate'],
                            frameheight=config_info['frame']['height'],
-                           framewidth=config_info['frame']['width']
+                           framewidth=config_info['frame']['width'],
+                           turnserver_ip=config_info['turnserver']['ip'],
+                           turnserver_port=config_info['turnserver']['port']
                            )
 
 @app.route('/teacher/?<string:user_id>', methods=['GET', 'POST'])
@@ -267,7 +269,10 @@ def teacher_monitor(user_id):
     return render_template("./teacher.html", satisfy_user=satisfy_user_dict, 
                            userid=user_id, 
                            username=request.cookies['username'], 
-                           disconnect_time = config_info['disconnect'])
+                           disconnect_time = config_info['disconnect'],
+                           turnserver_ip=config_info['turnserver']['ip'],
+                           turnserver_port=config_info['turnserver']['port']
+                           )
 
 
 @app.route("/timeout", methods=['GET', 'POST'])
